@@ -8,7 +8,7 @@ import time
 from config import Colors, VERSION
 from data import LOCATIONS, ILLUSION_SCENARIOS, EVENTS_POOL
 from state import GameState
-from utils import print_slow, header, divider, ai_say, choice_input
+from utils import print_slow, header, divider, ai_say, choice_input, wrap_text
 
 def get_random_location_for_country(country):
     """Возвращает (город, адрес) для заданной страны."""
@@ -57,7 +57,7 @@ def registration_scene(state):
     time.sleep(0.3)
 
     ai_say("Но Сознание остаётся. Оно накапливает опыт, даже если не помнит.")
-    ai_say("Каждое перерождение — новая маска. Но маска носит следы.")
+    ai_say("Каждое перерождение — новый опыт, идущий с вами сквозь партии и обогащаемый новыми партиями.")
     print()
     time.sleep(0.3)
 
@@ -163,26 +163,26 @@ def create_avatar(state):
     return state
 
 def show_profile(state):
-    header(f" ПРОФИЛЬ: {state.consciousness_id} ")
+    header(f" ПРОФИЛЬ ")
     family, year, country = state.scenario
-    print(f"  {Colors.CYAN}ID:{Colors.RESET}         {state.consciousness_id}")
-    print(f"  {Colors.CYAN}Аватар:{Colors.RESET}      {state.avatar_name}")
-    print(f"  {Colors.CYAN}Партия:{Colors.RESET}      #{state.party_number}")
-    print(f"  {Colors.CYAN}Старт:{Colors.RESET}       {family}, {year}, {country}")
-    print(f"  {Colors.CYAN}Страна:{Colors.RESET}      {state.country}")
-    print(f"  {Colors.CYAN}Город:{Colors.RESET}       {state.city}")
-    print(f"  {Colors.CYAN}Адрес:{Colors.RESET}       {state.location}")
-    print(f"  {Colors.CYAN}Возраст:{Colors.RESET}     {state.age} циклов")
-    print(f"  {Colors.CYAN}Перерождения:{Colors.RESET} {state.rebirth_count}")
-    print(f"  {Colors.CYAN}Смертей:{Colors.RESET}     {state.death_count}")
+    # Выравнивание по одной вертикальной линии — метки 14 символов
+    print(f"  {Colors.CYAN}{'ID:':<14}{Colors.RESET} {state.consciousness_id}")
+    print(f"  {Colors.CYAN}{'Аватар:':<14}{Colors.RESET} {state.avatar_name}")
+    print(f"  {Colors.CYAN}{'Партия:':<14}{Colors.RESET} #{state.party_number}")
+    print(f"  {Colors.CYAN}{'Старт:':<14}{Colors.RESET} {family}, {year}, {country}")
+    print(f"  {Colors.CYAN}{'Локация:':<14}{Colors.RESET} {state.city}, {state.country}")
+    print(f"  {Colors.CYAN}{'Адрес:':<14}{Colors.RESET} {state.location}")
+    print(f"  {Colors.CYAN}{'Возраст:':<14}{Colors.RESET} {state.age} циклов")
+    print(f"  {Colors.CYAN}{'Перерождения:':<14}{Colors.RESET} {state.rebirth_count}")
+    print(f"  {Colors.CYAN}{'Смертей:':<14}{Colors.RESET} {state.death_count}")
     divider()
-    print(f"  {Colors.YELLOW}Интеллект:{Colors.RESET}   {state.stats['intellect']}")
-    print(f"  {Colors.YELLOW}Мораль:{Colors.RESET}      {state.stats['morality']}")
-    print(f"  {Colors.YELLOW}Эмоции:{Colors.RESET}      {state.stats['emotions']}")
-    print(f"  {Colors.YELLOW}Осознанность:{Colors.RESET} {state.stats['awareness']}")
-    print(f"  {Colors.RED}Нарушения:{Colors.RESET}   {state.stats['violations']}{Colors.RESET}")
+    print(f"  {Colors.YELLOW}{'Интеллект:':<14}{Colors.RESET} {state.stats['intellect']}")
+    print(f"  {Colors.YELLOW}{'Мораль:':<14}{Colors.RESET} {state.stats['morality']}")
+    print(f"  {Colors.YELLOW}{'Эмоции:':<14}{Colors.RESET} {state.stats['emotions']}")
+    print(f"  {Colors.YELLOW}{'Осознанность:':<14}{Colors.RESET} {state.stats['awareness']}")
+    print(f"  {Colors.RED}{'Нарушения:':<14}{Colors.RESET} {state.stats['violations']}{Colors.RESET}")
     divider()
-    print(f"  {Colors.GRAY}Стран посещено: {len(state.visited_countries)}/{len(LOCATIONS)}{Colors.RESET}")
+    print(f"  {Colors.GRAY}Стран: {len(state.visited_countries)}/{len(LOCATIONS)}{Colors.RESET}")
     print()
     input(f"{Colors.GRAY}[Enter для продолжения]{Colors.RESET}")
 
@@ -216,26 +216,34 @@ def show_inventory(state):
 
 def explore(state):
     header(" ИССЛЕДОВАНИЕ ")
-    print_slow(f"{Colors.GRAY}Ты бродишь по {state.location}...{Colors.RESET}")
+    print(f"{Colors.GRAY}Ты бродишь по {state.location}...{Colors.RESET}")
     time.sleep(0.3)
 
     event = random.choice(EVENTS_POOL)
     print()
     print(f"{Colors.YELLOW}{Colors.BOLD}⚡ {event['name']}{Colors.RESET}")
-    print(f"{Colors.WHITE}{event['desc']}{Colors.RESET}")
+    print(wrap_text(f"{Colors.WHITE}{event['desc']}{Colors.RESET}"))
+    print()
 
-    if event.get("choice"):
-        idx = choice_input("Что выберешь?", ["Принять", "Отказаться"])
-        if idx is None:
-            return state
-        if idx == 0:
-            apply_effects(state, event["effects"])
-            print(f"{Colors.GREEN}Ты принял вызов.{Colors.RESET}")
-        else:
-            print(f"{Colors.GRAY}Ты отвернулся.{Colors.RESET}")
-    else:
-        apply_effects(state, event["effects"])
+    # Выбор действия
+    choices = event["choices"]
+    options = [c["text"] for c in choices]
+    idx = choice_input("Что ты делаешь?", options)
+    if idx is None:
+        return state
 
+    selected = choices[idx]
+    apply_effects(state, selected["effects"])
+
+    # Комментарий на основе выбора
+    effects = selected["effects"]
+    if "morality" in effects:
+        if effects["morality"] > 0:
+            print(f"{Colors.GREEN}Ты поступил по совести.{Colors.RESET}")
+        elif effects["morality"] < 0:
+            print(f"{Colors.RED}Ты сделал тёмный выбор.{Colors.RESET}")
+
+    # Находка предмета (30% шанс)
     if random.random() < 0.3:
         items = ["Осколок Памяти", "Кристалл Иллюзии", "Пепел Мира", "Эхо Голоса", "Нить Судьбы"]
         item = random.choice(items)
@@ -273,7 +281,7 @@ def travel(state):
 
 def work(state):
     header(" РАБОТА ")
-    print_slow(f"{Colors.GRAY}Ты погружаешься в труд...{Colors.RESET}")
+    print(f"{Colors.GRAY}Ты погружаешься в труд...{Colors.RESET}")
 
     gains = {
         "intellect": random.randint(0, 3),
@@ -292,7 +300,7 @@ def work(state):
 
 def sleep(state):
     header(" СОН ")
-    print_slow(f"{Colors.GRAY}Ты засыпаешь...{Colors.RESET}")
+    print(f"{Colors.GRAY}Ты засыпаешь...{Colors.RESET}")
     time.sleep(0.5)
 
     dream = random.choice([
@@ -320,10 +328,10 @@ def sleep(state):
 
 def die(state):
     header(" СМЕРТЬ ")
-    print_slow(f"{Colors.RED}{Colors.BOLD}Твоё воплощение угасает...{Colors.RESET}")
+    print(f"{Colors.RED}{Colors.BOLD}Твоё воплощение угасает...{Colors.RESET}")
     print()
-    print_slow(f"{Colors.GRAY}Плоть рассыпается. Мир исчезает.{Colors.RESET}")
-    print_slow(f"{Colors.GRAY}Остаётся только Сознание.{Colors.RESET}")
+    print(f"{Colors.GRAY}Плоть рассыпается. Мир исчезает.{Colors.RESET}")
+    print(f"{Colors.GRAY}Остаётся только Сознание.{Colors.RESET}")
     print()
 
     state.alive = False
@@ -342,8 +350,8 @@ def die(state):
 
 def purgatory(state):
     header(" ЧИСТИЛИЩЕ ")
-    print_slow(f"{Colors.GRAY}Белая пустота. Нет времени. Нет пространства.{Colors.RESET}")
-    print_slow(f"{Colors.GRAY}Ты — лишь искра, плывущая в вечности.{Colors.RESET}")
+    print(f"{Colors.GRAY}Белая пустота. Нет времени. Нет пространства.{Colors.RESET}")
+    print(f"{Colors.GRAY}Ты — лишь искра, плывущая в вечности.{Colors.RESET}")
     print()
 
     s = state.stats
@@ -383,7 +391,7 @@ def rebirth(state):
     state.rebirth_count += 1
     state.in_purgatory = False
 
-    print_slow(f"{Colors.CYAN}Сознание {state.consciousness_id} возвращается на Корабль Земля...{Colors.RESET}")
+    print_slow(f"{Colors.CYAN}{state.consciousness_id} возвращается на Корабль Земля...{Colors.RESET}")
     print()
     time.sleep(0.3)
 
