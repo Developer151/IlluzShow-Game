@@ -8,6 +8,17 @@
 
 **IllusionShow CLI Engine** — консольная игра, в которой вы управляете Сознанием (или Инженером Корабля Земля), проходящим партии в реалистичных иллюзорностях. Каждая партия — это жизнь в конкретной стране, городе и по конкретному адресу. После смерти наступает Чистилище, оценка КЗ и перерождение.
 
+## Как это выглядит?
+
+<img width="720" height="1422" alt="Screenshot_20260822-115340_Pydroid 3" src="https://github.com/user-attachments/assets/a54ce56d-9cbd-4602-934d-072aeef91fba" />
+Погружение в мир иллюзорностей
+<img width="720" height="1422" alt="Screenshot_20260822-123026_Pydroid 3" src="https://github.com/user-attachments/assets/c9734cdd-c65c-4903-bba7-a6f4aa164ce1" />
+- Пребывание в партии
+<img width="720" height="1422" alt="Screenshot_20260822-120321_Pydroid 3" src="https://github.com/user-attachments/assets/bad8d81a-4b04-41db-86ef-c9c808ce9b30" />
+- Механизм смерти с плохо прожитой партией
+<img width="720" height="1422" alt="Screenshot_20260822-120509_Pydroid 3" src="https://github.com/user-attachments/assets/57ca791b-684b-4c41-a137-91539f8e0c0f" />
+- Механизм смерти с хорошо прожитой партией
+
 ## Лист изменений
 
 - v0.2.6 — 21.08.2026
