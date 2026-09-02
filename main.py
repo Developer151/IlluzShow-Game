@@ -12,15 +12,42 @@ from state import GameState, save_game, load_game, delete_save
 from scenes import (
     registration_scene, create_avatar, show_profile, show_stats,
     show_inventory, explore, travel, work, sleep, die, show_achievements,
-    show_help, rebirth
+    show_help, purgatory, rebirth, choose_color_scheme
 )
-from utils import choice_input, header, divider
+from utils import choice_input, header, divider, family_display
+
+# Список всех доступных команд для нечеткого поиска
+COMMANDS = [
+    "help", "profile", "stats", "explore", "travel", 
+    "work", "sleep", "inventory", "achievements", 
+    "die", "save", "quit", "exit", "q"
+]
+
+def find_command(cmd_input):
+    """Ищет команду по префиксу. Возвращает полное имя или None."""
+    if not cmd_input:
+        return None
+    
+    # Точное совпадение всегда приоритетно
+    if cmd_input in COMMANDS:
+        return cmd_input
+        
+    # Ищем все команды, начинающиеся с введенного префикса
+    matches = [c for c in COMMANDS if c.startswith(cmd_input)]
+    
+    if len(matches) == 1:
+        return matches[0]
+    elif len(matches) > 1:
+        print(f"{Colors.YELLOW}Неоднозначный ввод. Возможные варианты: {', '.join(matches)}{Colors.RESET}")
+        return None
+    else:
+        return None
 
 def main():
-    print()
-    print(f"{Colors.CYAN}{Colors.BOLD}  ╔══════════════════════════════════════════╗")
-    print(f"  ║     ILLUSION SHOW CLI ENGINE v{VERSION}     ║")
-    print(f"  ╚══════════════════════════════════════════╝{Colors.RESET}")
+    print(f"{Colors.CYAN}{Colors.BOLD}                   ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■")
+    print(f"                   |  ILLUSION SHOW CLI Game v{VERSION}  |")
+    print(f"                   ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■{Colors.RESET}")
+    print(f"{Colors.CYAN}                 |От Developer151, tg - @slava_kos_2006|")
     print()
 
     state = load_game()
@@ -39,27 +66,33 @@ def main():
 
     if state is None:
         state = GameState()
+        state.color_scheme = choose_color_scheme()
+        print()
+        time.sleep(0.5)
         state = registration_scene(state)
         state = create_avatar(state)
-
     while True:
-        if state.alive and not state.in_purgatory:
+        if state.alive:
             # HUD по документации v0.2.1 — без отступов
-            header(f" {state.city} — {state.location} ")
+            header(f"Партия: #{state.party_count} ")
             family, year, country = state.scenario
-            print(f"Партия: #{state.party_number} | {family}, {year}, {country}")
-            print(f"ID: {state.consciousness_id} | Аватар: {state.avatar_name} | Возраст: {state.age} | Смертей: {state.death_count}")
+            print(f"| {family_display(family)}, {year}, {country}")
+            print(f"ID: | Аватар: {state.avatar_name} | Возраст: {state.age} | Смертей: {state.death_count}")
             print(f"Осознанность: {state.stats['awareness']} | Нарушения: {state.stats['violations']}")
             divider()
             print(f"Введи команду (help — справка)")
-        elif state.in_purgatory:
-            header(" ЧИСТИЛИЩЕ ")
-            print(f"Ты вне плоти. Введи 'rebirth' для перерождения.")
         else:
             header(" ??? ")
-
-        cmd = input(f"{Colors.GREEN}> {Colors.RESET}").strip().lower()
-
+            
+        raw_input = input(f"{Colors.GREEN}> {Colors.RESET}").strip().lower()
+        cmd = find_command(raw_input)
+        
+        if cmd is None and raw_input != "":
+             # Если ничего не нашли и ввод не пустой - ошибка
+             print(f"{Colors.RED}Неизвестная команда. Введи 'help' для справки.{Colors.RESET}")
+             time.sleep(1)
+             continue
+             
         if cmd == "help":
             show_help()
         elif cmd == "profile":
@@ -102,12 +135,6 @@ def main():
             confirm = input(f"{Colors.RED}Ты уверен? Это необратимо. (да/нет): {Colors.RESET}").strip().lower()
             if confirm in ["да", "yes", "y", "д"]:
                 state = die(state)
-        elif cmd == "rebirth":
-            if not state.in_purgatory:
-                print(f"{Colors.RED}Ты не в Чистилище.{Colors.RESET}")
-                time.sleep(1)
-                continue
-            state = rebirth(state)
         elif cmd == "save":
             save_game(state)
             time.sleep(1)
@@ -115,9 +142,6 @@ def main():
             save_game(state)
             print(f"{Colors.GRAY}Сознание уходит в тишину...{Colors.RESET}")
             break
-        else:
-            print(f"{Colors.RED}Неизвестная команда. Введи 'help' для справки.{Colors.RESET}")
-            time.sleep(1)
 
 if __name__ == "__main__":
     try:

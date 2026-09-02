@@ -1,24 +1,38 @@
 # -*- coding: utf-8 -*-
 """
-IllusionShow CLI Engine — Состояние игры
+IllusionShow CLI Engine — Состояние игры (v0.3.0)
+Новая механика: Мрак и Свет, уровни иллюзорностей
 """
 
 import json
 import os
+import random
 from data import HIDDEN_ACHIEVEMENTS, LOCATIONS
-
-SAVE_FILE = "illusion_show_save.json"
+from config import SAVE_FILE
 
 class GameState:
     def __init__(self):
-        self.consciousness_id = ""      # Сознание#NNNN или Сознание#NNNN_И#XXX
-        self.is_engineer = False        # True если инженер
+        self.consciousness_id = ""
+        self.is_engineer = False
         self.avatar_name = ""
-        self.country = ""               # страна
-        self.city = ""                  # город
-        self.location = ""              # адрес
-        self.party_number = 0
-        self.scenario = ("", "", "")    # (семья, год, страна)
+        self.country = ""
+        self.city = ""
+        self.location = ""
+        self.settlement_type = ""
+        self.party_number = 0   # Иллюзорность — случайный номер в диапазоне 4995–5005
+        self.party_count = 0    # Партия — обычный порядковый счёт (1, 2, 3...)
+        self.scenario = ("", "", "")
+        # Новая механика: Мрак и Свет
+        # darkness + light = 100 всегда
+        self.darkness = 0   # 0–100, Мрак
+        self.light = 0      # 0–100, Свет
+        self._init_darkness_light()
+        # Уровень иллюзорности (1–10000)
+        # Чем ниже — тем "глубже" во Мраке
+        # Чем выше — тем "выше" в Свете
+        self.illusion_level = 5000  # Середина
+        # Направление партии: "ascend" (поднимает) / "descend" (опускает) / "neutral"
+        self.party_direction = "neutral"
         self.stats = {
             "intellect": 10,
             "morality": 10,
@@ -26,6 +40,9 @@ class GameState:
             "awareness": 0,
             "violations": 0,
         }
+        # Сохраняем стартовые значения для расчета прогресса партии
+        self.start_stats = dict(self.stats)
+        
         self.hidden_achievements = {k: dict(v) for k, v in HIDDEN_ACHIEVEMENTS.items()}
         self.inventory = []
         self.visited_countries = set()
@@ -39,6 +56,37 @@ class GameState:
         self.kz_verdict = ""
         self.history = []
 
+    def _init_darkness_light(self):
+        """Инициализация начального соотношения Мрака и Света.
+        Максимальное преобладание любой стороны — 60%."""
+        # Генерируем случайное соотношение: одна сторона 40-60%, другая соответственно 60-40%
+        # То есть ни одна сторона не может быть меньше 40% или больше 60%
+        self.darkness = random.randint(40, 60)
+        self.light = 100 - self.darkness
+
+    def get_dominant_force(self):
+        """Возвращает преобладающую силу: 'light', 'darkness' или 'neutral'."""
+        if self.light > self.darkness:
+            return "light"
+        elif self.darkness > self.light:
+            return "darkness"
+        return "neutral"
+
+    def get_force_ratio(self):
+        """Возвращает строку соотношения для отображения."""
+        return f"Мрак {self.darkness}% | Свет {self.light}%"
+
+    def shift_balance(self, darkness_delta, light_delta):
+        """Изменить баланс Мрака и Света. Сумма всегда 100."""
+        self.darkness = max(0, min(100, self.darkness + darkness_delta))
+        self.light = max(0, min(100, self.light + light_delta))
+        # Корректируем чтобы сумма была ровно 100
+        total = self.darkness + self.light
+        if total != 100:
+            # Приоритет — сохранить пропорции
+            self.darkness = int(self.darkness * 100 / total)
+            self.light = 100 - self.darkness
+
     def to_dict(self):
         return {
             "consciousness_id": self.consciousness_id,
@@ -47,9 +95,16 @@ class GameState:
             "country": self.country,
             "city": self.city,
             "location": self.location,
+            "settlement_type": self.settlement_type,
             "party_number": self.party_number,
+            "party_count": self.party_count,
             "scenario": self.scenario,
+            "darkness": self.darkness,
+            "light": self.light,
+            "illusion_level": self.illusion_level,
+            "party_direction": self.party_direction,
             "stats": self.stats,
+            "start_stats": self.start_stats, # Сохраняем в сейв
             "hidden_achievements": self.hidden_achievements,
             "inventory": self.inventory,
             "visited_countries": list(self.visited_countries),
@@ -74,6 +129,16 @@ class GameState:
                 gs.visited_cities = set(v)
             elif k == "visited_locations":
                 gs.visited_locations = set(v)
+            elif k == "darkness":
+                gs.darkness = v
+            elif k == "light":
+                gs.light = v
+            elif k == "illusion_level":
+                gs.illusion_level = v
+            elif k == "party_direction":
+                gs.party_direction = v
+            elif k == "start_stats":
+                gs.start_stats = v
             else:
                 setattr(gs, k, v)
         return gs
@@ -100,17 +165,20 @@ class GameState:
             unlocked.append(self.hidden_achievements["all_countries"])
         return unlocked
 
+
 def save_game(state):
     with open(SAVE_FILE, "w", encoding="utf-8") as f:
         json.dump(state.to_dict(), f, ensure_ascii=False, indent=2)
     from config import Colors
     print(f"{Colors.GREEN}💾 Прогресс сохранён в {SAVE_FILE}{Colors.RESET}")
 
+
 def load_game():
     if not os.path.exists(SAVE_FILE):
         return None
     with open(SAVE_FILE, "r", encoding="utf-8") as f:
         return GameState.from_dict(json.load(f))
+
 
 def delete_save():
     if os.path.exists(SAVE_FILE):
