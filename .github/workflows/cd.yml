@@ -1,0 +1,41 @@
+name: CD - Release
+
+on:
+  push:
+    tags:
+      - 'v*'  # Запуск при создании тега вида v1.0.0
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.x'
+
+    - name: Validate Python syntax
+      run: |
+        echo "Validating all Python files..."
+        python -m py_compile main.py config.py data.py scenes.py state.py utils.py
+        echo "✓ All files are valid"
+
+    - name: Create Release Archive
+      run: |
+        echo "Creating release archive..."
+        zip -r illusionshow-${{ github.ref_name }}.zip *.py LICENSE README.md
+        echo "✓ Archive created: illusionshow-${{ github.ref_name }}.zip"
+
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v1
+      with:
+        files: illusionshow-${{ github.ref_name }}.zip
+        generate_release_notes: true
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
