@@ -1,0 +1,28 @@
+name: CI - Config Update
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  pull_request:
+    branches: [ "main", "master" ]
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.x'
+
+    - name: Validate Python syntax
+      run: |
+        echo "Checking Python files for syntax errors..."
+        python -m py_compile main.py config.py data.py scenes.py state.py utils.py
+        echo "✓ All Python files are valid"
