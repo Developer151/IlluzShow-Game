@@ -1,0 +1,1394 @@
+--- index.html (原始)
+
+
++++ index.html (修改后)
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Illusion Show - Корабль Земля</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Courier New', monospace;
+            background: #0a0a0a;
+            color: #e0e0e0;
+            min-height: 100vh;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        /* Слой спрайта (2 слой) */
+        #sprite-layer {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 400px;
+            height: 400px;
+            opacity: 0;
+            transition: opacity 1s ease;
+            pointer-events: none;
+            z-index: 2;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #sprite-layer.visible {
+            opacity: 0.3;
+        }
+
+        .sprite-placeholder {
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(ellipse at center, rgba(128, 0, 128, 0.4) 0%, transparent 70%);
+            border-radius: 50%;
+            animation: pulse 3s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 0.3; }
+            50% { transform: scale(1.1); opacity: 0.5; }
+        }
+
+        /* Слой текста (1 слой) */
+        #text-layer {
+            position: relative;
+            z-index: 1;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #game-output {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px;
+            margin-bottom: 10px;
+            white-space: pre-wrap;
+            line-height: 1.6;
+        }
+
+        #input-area {
+            display: flex;
+            gap: 10px;
+            padding: 10px;
+            background: rgba(0, 0, 0, 0.8);
+            border-top: 1px solid #333;
+            position: sticky;
+            bottom: 0;
+        }
+
+        #command-input {
+            flex: 1;
+            background: transparent;
+            border: none;
+            color: #0f0;
+            font-family: inherit;
+            font-size: 16px;
+            padding: 10px;
+            outline: none;
+        }
+
+        #command-input::placeholder {
+            color: #555;
+        }
+
+        .btn {
+            background: #1a1a1a;
+            border: 1px solid #333;
+            color: #0f0;
+            padding: 10px 20px;
+            cursor: pointer;
+            font-family: inherit;
+            transition: all 0.2s;
+        }
+
+        .btn:hover {
+            background: #2a2a2a;
+            border-color: #0f0;
+        }
+
+        /* Цвета */
+        .color-reset { color: #e0e0e0; }
+        .color-bold { font-weight: bold; }
+        .color-dim { opacity: 0.7; }
+        .color-red { color: #ff6b6b; }
+        .color-green { color: #51cf66; }
+        .color-yellow { color: #fcc419; }
+        .color-blue { color: #74c0fc; }
+        .color-magenta { color: #cc5de8; }
+        .color-cyan { color: #63e6be; }
+        .color-white { color: #f8f9fa; }
+        .color-gray { color: #868e96; }
+        .color-violet { color: #a610c7; }
+        .color-lime { color: #94d82d; }
+        .color-black { color: #000000; }
+
+        /* Анимации текста */
+        .typing {
+            overflow: hidden;
+            border-right: 2px solid #0f0;
+            white-space: pre-wrap;
+            animation: blink 0.7s step-end infinite;
+        }
+
+        @keyframes blink {
+            50% { border-color: transparent; }
+        }
+
+        /* HUD */
+        .hud-header {
+            border: 2px solid #63e6be;
+            padding: 10px;
+            margin: 10px 0;
+            text-align: center;
+        }
+
+        .hud-line {
+            padding: 5px 0;
+            border-bottom: 1px solid #333;
+        }
+
+        .hud-line:last-child {
+            border-bottom: none;
+        }
+
+        /* Шкалы */
+        .bar-container {
+            display: inline-block;
+        }
+
+        .bar-10 {
+            letter-spacing: 2px;
+        }
+
+        /* Кнопки выбора */
+        .choice-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin: 15px 0;
+        }
+
+        .choice-btn {
+            background: rgba(0, 0, 0, 0.6);
+            border: 1px solid #63e6be;
+            color: #63e6be;
+            padding: 12px 20px;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 14px;
+            text-align: left;
+            transition: all 0.2s;
+        }
+
+        .choice-btn:hover {
+            background: rgba(99, 230, 182, 0.2);
+            transform: translateX(5px);
+        }
+
+        /* Скроллбар */
+        #game-output::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        #game-output::-webkit-scrollbar-track {
+            background: #1a1a1a;
+        }
+
+        #game-output::-webkit-scrollbar-thumb {
+            background: #333;
+            border-radius: 4px;
+        }
+
+        #game-output::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+
+        /* Адаптив */
+        @media (max-width: 600px) {
+            #sprite-layer {
+                width: 250px;
+                height: 250px;
+            }
+
+            #text-layer {
+                padding: 10px;
+            }
+
+            #input-area {
+                flex-direction: column;
+            }
+
+            .btn {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Слой 2: Спрайт -->
+    <div id="sprite-layer">
+        <div class="sprite-placeholder" id="sprite-content"></div>
+    </div>
+
+    <!-- Слой 1: Текст -->
+    <div id="text-layer">
+        <div id="game-output"></div>
+        <div id="input-area" style="display: none;">
+            <span class="color-green">&gt;</span>
+            <input type="text" id="command-input" placeholder="Введите команду (help — справка)" autocomplete="off">
+        </div>
+    </div>
+
+    <script>
+        // ==================== ДАННЫЕ ИГРЫ ====================
+        const VERSION = "0.3.7-html";
+
+        const LOCATIONS = {
+            "Россия": {
+                "Москва": ["ул. Тверская, д. 15, кв. 42", "ул. Арбат, д. 7, подвал", "Проспект Мира, д. 112, офис 305"],
+                "Санкт-Петербург": ["Невский проспект, д. 88, кв. 17", "ул. Рубинштейна, д. 5", "Каменноостровский проспект, д. 26"]
+            },
+            "Украина": {
+                "Киев": ["ул. Крещатик, д. 22, кв. 15", "Андреевский спуск, д. 34", "ул. Ярославов Вал, д. 13"],
+                "Львов": ["пл. Рынок, д. 10, кв. 3", "ул. Городоцкая, д. 45"]
+            },
+            "США": {
+                "Нью-Йорк": ["Brooklyn, 1450 Fulton St, apt 3B", "Manhattan, 204 E 13th St, #5"],
+                "Лос-Анджелес": ["Hollywood, 4820 Santa Monica Blvd, apt 7", "Downtown, 732 S Spring St"]
+            },
+            "Германия": {
+                "Берлин": ["Kreuzberg, Oranienstraße 45", "Neukölln, Weserstraße 89"],
+                "Мюнхен": ["Schwabing, Leopoldstraße 88"]
+            },
+            "Япония": {
+                "Токио": ["Шибуя, Дзингумаэ 2-12-15", "Синдзюку, Кабукитё 1-19-8"],
+                "Осака": ["Намба, Дотонбори 1-8-12"]
+            }
+        };
+
+        const ILLUSION_SCENARIOS = [
+            ["фермера", "1987", "Россия"],
+            ["учителя", "1995", "Россия"],
+            ["врача", "2003", "Украина"],
+            ["инженера", "1978", "США"],
+            ["художника", "2010", "Германия"],
+            ["учёного", "2008", "Япония"],
+            ["моряка", "1991", "Норвегия"],
+            ["журналиста", "2015", "Бразилия"],
+            ["музыканта", "1989", "Великобритания"],
+            ["пекаря", "1997", "Франция"]
+        ];
+
+        const PROFESSIONS = ILLUSION_SCENARIOS.map(s => s[0]);
+
+        const SETTLEMENT_TYPES = ["городская местность", "сельская местность", "пригородная местность"];
+
+        const EVENTS_POOL = [
+            {
+                name: "Потерявшийся ребёнок",
+                desc: "На улице ты видишь плачущего ребёнка лет пяти. Он держит в руке порванный воздушный шарик.",
+                choices: [
+                    { text: "Подойти, успокоить и помочь найти родителей", effects: { morality: 3, emotions: 1, awareness: 1 } },
+                    { text: "Проигнорировать и пройти мимо", effects: { morality: -1, emotions: -1 } },
+                    { text: "Обмануть и увести в тихий переулок", effects: { morality: -5, violations: 2, awareness: 1 } }
+                ]
+            },
+            {
+                name: "Бездомный у магазина",
+                desc: "У входа в супермаркет сидит бездомный в грязной одежде. Перед ним раскрытая кепка с несколькими монетами.",
+                choices: [
+                    { text: "Купить ему еду и тёплый чай", effects: { morality: 2, emotions: 1 } },
+                    { text: "Дать немного денег", effects: { morality: 1, emotions: 1 } },
+                    { text: "Пройти мимо, отвернувшись", effects: { morality: -1, emotions: -1 } },
+                    { text: "Отобрать у него монеты", effects: { morality: -4, violations: 2, emotions: -2 } }
+                ]
+            },
+            {
+                name: "Кража в магазине",
+                desc: "Ты замечаешь, как подросток прячет дорогой наушник в карман. Продавец отвлекся.",
+                choices: [
+                    { text: "Тихо предупредить подростка", effects: { morality: 2, intellect: 1, awareness: 1 } },
+                    { text: "Сообщить продавцу", effects: { morality: 1, emotions: -1 } },
+                    { text: "Проигнорировать", effects: { morality: -1 } },
+                    { text: "Помочь украсть", effects: { morality: -4, violations: 2, intellect: 1 } }
+                ]
+            },
+            {
+                name: "Пожилой сосед",
+                desc: "Твой сосед, пожилой дедушка, стоит перед дверью с полными сумками продуктов.",
+                choices: [
+                    { text: "Помочь донести сумки", effects: { morality: 3, emotions: 1 } },
+                    { text: "Открыть дверь и уйти", effects: { morality: 1 } },
+                    { text: "Пройти мимо", effects: { morality: -2, emotions: -1 } }
+                ]
+            },
+            {
+                name: "Потерянный кошелёк",
+                desc: "На лавке в парке лежит кожаный кошелёк. Внутри — деньги и документы.",
+                choices: [
+                    { text: "Отнести в полицию", effects: { morality: 3, awareness: 1 } },
+                    { text: "Взять деньги, выбросить кошелёк", effects: { morality: -3, violations: 1 } },
+                    { text: "Оставить на месте", effects: { morality: 0 } }
+                ]
+            },
+            {
+                name: "Провал Памяти",
+                desc: "Внезапно вспомнил лицо, которое никогда не видел. Человек в белом халате склонился над тобой.",
+                choices: [
+                    { text: "Попытаться удержать образ", effects: { awareness: 3, emotions: 1, intellect: 1 } },
+                    { text: "Отогнать мысль", effects: { awareness: 1, emotions: -1 } },
+                    { text: "Выпить успокоительное", effects: { emotions: -2, awareness: -1 } }
+                ]
+            },
+            {
+                name: "Тишина",
+                desc: "Ничего не произошло. Улица пуста. Нет ветра. Даже сигнализация молчит.",
+                choices: [
+                    { text: "Осмотреться внимательно", effects: { awareness: 2, intellect: 1 } },
+                    { text: "Продолжить идти", effects: { awareness: 1 } },
+                    { text: "Закричать", effects: { awareness: 1, emotions: 1, violations: 1 } }
+                ]
+            }
+        ];
+
+        const HIDDEN_ACHIEVEMENTS = {
+            "first_death": { name: "Первая смерть", desc: "Умереть впервые", unlocked: false },
+            "awareness_50": { name: "Пробуждённый", desc: "Достичь осознанности 50", unlocked: false },
+            "violations_10": { name: "Нарушитель", desc: "Получить 10 нарушений", unlocked: false },
+            "moral_paragon": { name: "Нравственный идеал", desc: "Достичь морали 30", unlocked: false },
+            "rebirth_5": { name: "Вечный странник", desc: "Переродиться 5 раз", unlocked: false }
+        };
+
+        // ==================== СОСТОЯНИЕ ИГРЫ ====================
+        let gameState = {
+            consciousness_id: "",
+            is_engineer: false,
+            avatar_name: "",
+            country: "",
+            city: "",
+            location: "",
+            settlement_type: "",
+            party_number: 0,
+            party_count: 0,
+            scenario: ["", "", ""],
+            darkness: 50,
+            light: 50,
+            illusion_level: 5000,
+            party_direction: "neutral",
+            stats: { intellect: 10, morality: 10, emotions: 10, awareness: 0, violations: 0 },
+            start_stats: {},
+            inventory: [],
+            visited_countries: new Set(),
+            visited_cities: new Set(),
+            visited_locations: new Set(),
+            rebirth_count: 0,
+            death_count: 0,
+            age: 0,
+            alive: true,
+            in_purgatory: false,
+            kz_verdict: "",
+            history: [],
+            color_scheme: "violet_green"
+        };
+
+        let currentScene = "intro";
+        let typingTimeout = null;
+
+        // ==================== УТИЛИТЫ ====================
+        const output = document.getElementById('game-output');
+        const inputArea = document.getElementById('input-area');
+        const commandInput = document.getElementById('command-input');
+        const spriteLayer = document.getElementById('sprite-layer');
+        const spriteContent = document.getElementById('sprite-content');
+
+        function cls() {
+            output.innerHTML = '';
+        }
+
+        function print(text, className = '') {
+            const div = document.createElement('div');
+            div.className = className;
+            div.textContent = text;
+            output.appendChild(div);
+            output.scrollTop = output.scrollHeight;
+            return div;
+        }
+
+        function printHTML(html) {
+            const div = document.createElement('div');
+            div.innerHTML = html;
+            output.appendChild(div);
+            output.scrollTop = output.scrollHeight;
+        }
+
+        async function printSlow(text, delay = 25, className = '') {
+            return new Promise(resolve => {
+                const div = document.createElement('div');
+                div.className = className;
+                output.appendChild(div);
+
+                let i = 0;
+                function type() {
+                    if (i < text.length) {
+                        div.textContent += text.charAt(i);
+                        i++;
+                        output.scrollTop = output.scrollHeight;
+                        typingTimeout = setTimeout(type, delay);
+                    } else {
+                        resolve();
+                    }
+                }
+                type();
+            });
+        }
+
+        function stopTyping() {
+            if (typingTimeout) {
+                clearTimeout(typingTimeout);
+                typingTimeout = null;
+            }
+        }
+
+        function header(title) {
+            const w = 50;
+            print('═'.repeat(w), 'color-cyan');
+            print(`║${title.centerPad(w - 2)}║`, 'color-cyan color-bold');
+            print('═'.repeat(w), 'color-cyan');
+        }
+
+        String.prototype.centerPad = function(totalWidth) {
+            const str = this.toString();
+            const padding = totalWidth - str.length;
+            const left = Math.floor(padding / 2);
+            const right = padding - left;
+            return ' '.repeat(Math.max(0, left)) + str + ' '.repeat(Math.max(0, right));
+        };
+
+        function divider() {
+            print('─'.repeat(50), 'color-gray');
+        }
+
+        function aiSay(text, delay = 30) {
+            return printSlow(`◈ ИИ Корабля Земля: ${text}`, delay, 'color-lime');
+        }
+
+        function showSprite(type) {
+            spriteContent.style.background = getSpriteBackground(type);
+            spriteLayer.classList.add('visible');
+        }
+
+        function hideSprite() {
+            spriteLayer.classList.remove('visible');
+        }
+
+        function getSpriteBackground(type) {
+            switch(type) {
+                case 'purgatory':
+                    return 'radial-gradient(ellipse at center, rgba(128, 0, 128, 0.4) 0%, transparent 70%)';
+                case 'scan':
+                    return 'radial-gradient(ellipse at center, rgba(0, 255, 0, 0.3) 0%, transparent 70%)';
+                case 'street':
+                    return 'linear-gradient(180deg, rgba(100, 100, 150, 0.3) 0%, transparent 100%)';
+                case 'tunnel':
+                    return 'radial-gradient(circle at center, rgba(255, 255, 255, 0.5) 0%, rgba(100, 100, 100, 0.2) 50%, transparent 100%)';
+                default:
+                    return 'transparent';
+            }
+        }
+
+        function getRandomLocation(country) {
+            const cities = Object.keys(LOCATIONS[country] || LOCATIONS["Россия"]);
+            const city = cities[Math.floor(Math.random() * cities.length)];
+            const addresses = LOCATIONS[country]?.[city] || LOCATIONS["Россия"]["Москва"];
+            const address = addresses[Math.floor(Math.random() * addresses.length)];
+            return { city, address };
+        }
+
+        function buildFamilyString(baseProfession) {
+            const others = PROFESSIONS.filter(p => p !== baseProfession);
+            const second = others[Math.floor(Math.random() * others.length)];
+            return `семье ${baseProfession} и ${second}`;
+        }
+
+        function familyDisplay(family) {
+            if (family.startsWith("семье ")) {
+                return "Семья " + family.slice(6);
+            }
+            return family.charAt(0).toUpperCase() + family.slice(1);
+        }
+
+        function directionDisplay(direction) {
+            const mapping = { "ascend": "Возвышение", "descend": "Падение", "neutral": "Нейтральный" };
+            return mapping[direction] || direction;
+        }
+
+        function forceBar5(value, filledColor, emptyColor) {
+            const tens = Math.floor(value / 10);
+            const rem = value % 10;
+            let top, bottom;
+
+            if (rem === 0) {
+                top = tens;
+                bottom = tens;
+            } else if (rem <= 5) {
+                top = tens + 1;
+                bottom = tens;
+            } else {
+                top = tens + 1;
+                bottom = tens + 1;
+            }
+
+            top = Math.min(10, Math.max(0, top));
+            bottom = Math.min(10, Math.max(0, bottom));
+
+            const topLine = `${filledColor}${'■'.repeat(top)}${emptyColor}${'■'.repeat(10 - top)}`;
+            const bottomLine = `${filledColor}${'■'.repeat(bottom)}${emptyColor}${'■'.repeat(10 - bottom)}`;
+
+            return [topLine, bottomLine];
+        }
+
+        function checkAchievements() {
+            const unlocked = [];
+
+            if (gameState.death_count >= 1 && !HIDDEN_ACHIEVEMENTS["first_death"].unlocked) {
+                HIDDEN_ACHIEVEMENTS["first_death"].unlocked = true;
+                unlocked.push(HIDDEN_ACHIEVEMENTS["first_death"]);
+            }
+            if (gameState.stats.awareness >= 50 && !HIDDEN_ACHIEVEMENTS["awareness_50"].unlocked) {
+                HIDDEN_ACHIEVEMENTS["awareness_50"].unlocked = true;
+                unlocked.push(HIDDEN_ACHIEVEMENTS["awareness_50"]);
+            }
+            if (gameState.stats.violations >= 10 && !HIDDEN_ACHIEVEMENTS["violations_10"].unlocked) {
+                HIDDEN_ACHIEVEMENTS["violations_10"].unlocked = true;
+                unlocked.push(HIDDEN_ACHIEVEMENTS["violations_10"]);
+            }
+            if (gameState.stats.morality >= 30 && !HIDDEN_ACHIEVEMENTS["moral_paragon"].unlocked) {
+                HIDDEN_ACHIEVEMENTS["moral_paragon"].unlocked = true;
+                unlocked.push(HIDDEN_ACHIEVEMENTS["moral_paragon"]);
+            }
+            if (gameState.rebirth_count >= 5 && !HIDDEN_ACHIEVEMENTS["rebirth_5"].unlocked) {
+                HIDDEN_ACHIEVEMENTS["rebirth_5"].unlocked = true;
+                unlocked.push(HIDDEN_ACHIEVEMENTS["rebirth_5"]);
+            }
+
+            return unlocked;
+        }
+
+        function saveGame() {
+            const saveData = {
+                ...gameState,
+                visited_countries: Array.from(gameState.visited_countries),
+                visited_cities: Array.from(gameState.visited_cities),
+                visited_locations: Array.from(gameState.visited_locations)
+            };
+            localStorage.setItem('illusionShowSave', JSON.stringify(saveData));
+            print('💾 Прогресс сохранён', 'color-green');
+        }
+
+        function loadGame() {
+            const saved = localStorage.getItem('illusionShowSave');
+            if (saved) {
+                const data = JSON.parse(saved);
+                gameState = {
+                    ...data,
+                    visited_countries: new Set(data.visited_countries || []),
+                    visited_cities: new Set(data.visited_cities || []),
+                    visited_locations: new Set(data.visited_locations || [])
+                };
+                return true;
+            }
+            return false;
+        }
+
+        function deleteSave() {
+            localStorage.removeItem('illusionShowSave');
+        }
+
+        // ==================== ВВОД/ВЫБОР ====================
+        function choiceInput(prompt, options) {
+            return new Promise(resolve => {
+                print('', 'color-yellow');
+                print(`${prompt}`, 'color-yellow');
+
+                const container = document.createElement('div');
+                container.className = 'choice-buttons';
+
+                options.forEach((opt, i) => {
+                    const btn = document.createElement('button');
+                    btn.className = 'choice-btn';
+                    btn.textContent = `[${i + 1}] ${opt}`;
+                    btn.onclick = () => {
+                        container.remove();
+                        resolve(i);
+                    };
+                    container.appendChild(btn);
+                });
+
+                output.appendChild(container);
+                output.scrollTop = output.scrollHeight;
+            });
+        }
+
+        function waitEnter(promptText = '') {
+            return new Promise(resolve => {
+                if (promptText) {
+                    print(promptText, 'color-gray');
+                }
+
+                const handler = (e) => {
+                    if (e.key === 'Enter') {
+                        commandInput.removeEventListener('keydown', handler);
+                        resolve();
+                    }
+                };
+
+                commandInput.addEventListener('keydown', handler);
+                commandInput.focus();
+            });
+        }
+
+        // ==================== СЦЕНЫ ====================
+        async function chooseColorScheme() {
+            cls();
+            header('ВЫБОР СТИЛЯ');
+
+            print('\nИИ Корабля Земля: Выберите визуальный стиль отображения баланса.\n', 'color-cyan');
+
+            print('  1. Классический', 'color-magenta');
+            print('     Мрак: ■■■░░░ (Фиолетовый)');
+            print('     Свет: ■■■░░░ (Зелёный)\n');
+
+            print('  2. Монохромный', 'color-bold');
+            print('     Мрак: ■■■░░░ (Чёрный)');
+            print('     Свет: ■■■░░░ (Белый)\n');
+
+            const idx = await choiceInput("Введите номер варианта (1 или 2):", ["Классический", "Монохромный"]);
+            return idx === 1 ? "black_white" : "violet_green";
+        }
+
+        async function registrationScene() {
+            cls();
+
+            print('', 'color-violet color-bold');
+            await printSlow('...Ты не открываешь глаза.');
+            await printSlow('У тебя их нет.');
+            await printSlow('Ты — чистое Сознание, только что погруженное в Корабль Земля.');
+            print('', 'color-reset');
+
+            print('\nВы находитесь на круглой платформе с подсветкой границ.', 'color-gray');
+            print('Внизу платформы фиолетовое свечение и космос.', 'color-gray');
+            print('Перед собой вы видите сгусток светлых зелёных частиц.\n', 'color-gray');
+
+            // Спрайт Чистилища
+            showSprite('purgatory');
+
+            await aiSay('Приветствую, сознание.');
+            await sleep(300);
+            await aiSay('Скоро начнётся ваша первая партия в одной из иллюзорностей Корабля Земля.');
+            print('');
+            await sleep(300);
+            await aiSay('Цель Корабля Земля - предоставить вам полный спектр ощущений.');
+            print('');
+            await sleep(300);
+            await aiSay('Местом проведения первых партий являются иллюзорности в пределах 4995–5005-й.');
+            print('');
+            await sleep(300);
+            await aiSay('Перед каждой новой партией память о прошлой партии будет стираться.');
+            print('');
+            await sleep(300);
+            await aiSay('Но Сознание остаётся. Оно накапливает опыт, даже если не помнит.');
+            await aiSay('Каждое перерождение — новый опыт, идущий с вами сквозь партии.');
+            print('');
+            await sleep(300);
+
+            // Спрайт сканирования
+            showSprite('scan');
+            await sleep(2000);
+            hideSprite();
+
+            const baseId = Math.floor(Math.random() * 9999) + 1;
+            const isEngineer = Math.random() < 0.01;
+
+            if (isEngineer) {
+                const engNum = Math.floor(Math.random() * 500) + 1;
+                gameState.consciousness_id = `Сознание#${baseId}_И${engNum}`;
+                gameState.is_engineer = true;
+                await aiSay('Запускаю процесс регистрации...');
+                await aiSay(`Вам присвоен идентификатор: ${gameState.consciousness_id}.`);
+                await aiSay('Вы — инженер, состоите в Персонале Корабля Земля.');
+            } else {
+                gameState.consciousness_id = `Сознание#${baseId}`;
+                await aiSay('Запускаю процесс регистрации...');
+                await aiSay(`Вам присвоен идентификатор: ${gameState.consciousness_id}.`);
+                await aiSay('Вы — простое сознание с характеристиками как у всех.');
+            }
+            print('');
+            await sleep(300);
+
+            await aiSay('Приготовьтесь к погружению.');
+            print('');
+            await sleep(300);
+
+            await aiSay('Ваше соотношение Мрака и Света:');
+
+            // Инициализация баланса
+            gameState.darkness = Math.floor(Math.random() * 21) + 40;
+            gameState.light = 100 - gameState.darkness;
+
+            const darkCol = gameState.color_scheme === 'black_white' ? '#000000' : '#cc5de8';
+            const lightCol = gameState.color_scheme === 'black_white' ? '#ffffff' : '#51cf66';
+            const grayCol = '#868e96';
+
+            const [darkTop, darkBottom] = forceBar5(gameState.darkness, darkCol, grayCol);
+            const [lightTop, lightBottom] = forceBar5(gameState.light, lightCol, grayCol);
+
+            printHTML(`  Мрак: <span style="color:${darkCol}">${darkTop}</span> ${gameState.darkness}%`);
+            printHTML(`        <span style="color:${darkCol}">${darkBottom}</span>`);
+            printHTML(`  Свет: <span style="color:${lightCol}">${lightTop}</span> ${gameState.light}%`);
+            printHTML(`        <span style="color:${lightCol}">${lightBottom}</span>`);
+            print('');
+
+            if (gameState.light > gameState.darkness) {
+                await aiSay('Свет преобладает. Следующая партия будет благоприятной.');
+            } else if (gameState.darkness > gameState.light) {
+                await aiSay('Мрак преобладает. Следующая партия будет тяжёлой.');
+            } else {
+                await aiSay('Баланс нейтрален. Партия без преимуществ.');
+            }
+            print('');
+            await sleep(300);
+
+            await waitEnter('[Нажми Enter для назначения партии...]');
+            return partyAssignment();
+        }
+
+        async function partyAssignment() {
+            cls();
+            header(' НАЗНАЧЕНИЕ ПАРТИИ ');
+
+            await aiSay('Анализирую доступные иллюзорности в диапазоне 4995–5005...');
+            print('');
+            await sleep(800);
+
+            gameState.party_number = Math.floor(Math.random() * 11) + 4995;
+            gameState.party_count = gameState.rebirth_count + 1;
+
+            const scenario = ILLUSION_SCENARIOS[Math.floor(Math.random() * ILLUSION_SCENARIOS.length)];
+            const family = buildFamilyString(scenario[0]);
+            gameState.scenario = [family, scenario[1], scenario[2]];
+            gameState.country = scenario[2];
+
+            const loc = getRandomLocation(gameState.country);
+            gameState.city = loc.city;
+            gameState.location = loc.address;
+            gameState.settlement_type = SETTLEMENT_TYPES[Math.floor(Math.random() * SETTLEMENT_TYPES.length)];
+
+            // Вектор партии
+            if (gameState.light > gameState.darkness) {
+                gameState.party_direction = 'ascend';
+                gameState.illusion_level = Math.max(1, gameState.illusion_level - Math.floor(Math.random() * 1001) + 500);
+            } else if (gameState.darkness > gameState.light) {
+                gameState.party_direction = 'descend';
+                gameState.illusion_level = Math.min(10000, gameState.illusion_level + Math.floor(Math.random() * 1001) + 500);
+            } else {
+                gameState.party_direction = 'neutral';
+                gameState.illusion_level += Math.floor(Math.random() * 401) - 200;
+                gameState.illusion_level = Math.max(1, Math.min(10000, gameState.illusion_level));
+            }
+
+            // Спрайт улицы/двора
+            showSprite('street');
+
+            await aiSay(`Назначена иллюзорность #${gameState.party_number}.`);
+            await aiSay(`Партия #${gameState.party_count}.`);
+            await aiSay(`Вектор партии: ${directionDisplay(gameState.party_direction)}.`);
+            await aiSay(`Вы начнёте партию в ${family}, ${scenario[1]} год, ${countryName(gameState.country)}.`);
+            print('');
+            await sleep(300);
+
+            await aiSay('Погружение через 5 секунд. Память о регистрации будет стёрта.');
+            await aiSay('Сознание сохранит следы.');
+            print('');
+
+            for (let i = 5; i > 0; i--) {
+                printHTML(`<span class="color-red color-bold">  ${i}...</span>`);
+                await sleep(1000);
+            }
+
+            print('');
+            print('Платформа под вами гаснет.', 'color-gray');
+            print('Зелёные частицы рассеиваются.', 'color-gray');
+            print('Вы падаете...', 'color-gray');
+            print('');
+            await sleep(500);
+
+            hideSprite();
+            return createAvatar();
+        }
+
+        function countryName(code) {
+            return code;
+        }
+
+        function createAvatar() {
+            cls();
+            header(' РОЖДЕНИЕ АВАТАРА ');
+
+            gameState.avatar_name = `#${gameState.rebirth_count + 1}`;
+            gameState.visited_countries.add(gameState.country);
+            gameState.visited_cities.add(gameState.city);
+            gameState.visited_locations.add(gameState.location);
+            gameState.alive = true;
+            gameState.in_purgatory = false;
+            gameState.age = 0;
+
+            const oldAwareness = gameState.stats.awareness || 0;
+            const oldViolations = gameState.stats.violations || 0;
+
+            gameState.stats = {
+                intellect: Math.floor(Math.random() * 11) + 5,
+                morality: Math.floor(Math.random() * 11) + 5,
+                emotions: Math.floor(Math.random() * 11) + 5,
+                awareness: oldAwareness,
+                violations: oldViolations
+            };
+
+            gameState.start_stats = { ...gameState.stats };
+
+            const [family, year, country] = gameState.scenario;
+
+            printSlow(`${familyDisplay(family)}, ${year}, ${countryName(country)}`, 30, 'color-cyan');
+            printSlow(`Локация: (${gameState.settlement_type})`, 30, 'color-cyan');
+            print('');
+
+            // Спрайт света в конце туннеля
+            showSprite('tunnel');
+            setTimeout(() => hideSprite(), 2000);
+
+            currentScene = 'main';
+            showHUD();
+            print('Введи команду (help — справка)', 'color-gray');
+            inputArea.style.display = 'flex';
+            commandInput.focus();
+        }
+
+        function showHUD() {
+            const [family, year, country] = gameState.scenario;
+
+            printHTML(`<div class="hud-header">
+                <div class="hud-line color-cyan color-bold">■ Партия: #${gameState.party_count} ■</div>
+                <div class="hud-line">| ${familyDisplay(family)}, ${year}, ${countryName(country)}</div>
+                <div class="hud-line">ID: | Аватар: ${gameState.avatar_name} | Возраст: ${gameState.age} | Смертей: ${gameState.death_count}</div>
+                <div class="hud-line">Осознанность: ${gameState.stats.awareness} | Нарушения: ${gameState.stats.violations}</div>
+            </div>`);
+            divider();
+        }
+
+        function showProfile() {
+            cls();
+            header(' ПРОФИЛЬ ');
+
+            const [family, year, country] = gameState.scenario;
+
+            print(`  ID:             ${gameState.consciousness_id}`, 'color-cyan');
+            print(`  Аватар:         ${gameState.avatar_name}`, 'color-cyan');
+            print(`  Партия:         #${gameState.party_count}`, 'color-cyan');
+            print(`  Иллюзорность:   #${gameState.party_number}`, 'color-cyan');
+            print(`  Старт:          ${familyDisplay(family)}, ${year}, ${countryName(country)}`, 'color-cyan');
+            print(`  Локация:        ${gameState.city} (${gameState.settlement_type})`, 'color-cyan');
+            print(`  Адрес:          ${gameState.location}`, 'color-cyan');
+            print(`  Возраст:        ${gameState.age} циклов`, 'color-cyan');
+            print(`  Перерождения:   ${gameState.rebirth_count}`, 'color-cyan');
+            print(`  Смертей:        ${gameState.death_count}`, 'color-cyan');
+
+            divider();
+
+            function bar(val, color) {
+                const filled = Math.min(15, Math.max(0, Math.floor(val * 3 / 4)));
+                const empty = 15 - filled;
+                return `<span style="color:${color}">${'█'.repeat(filled)}</span><span class="color-gray">${'░'.repeat(empty)}</span> ${val}`;
+            }
+
+            printHTML(`  Интеллект:      ${bar(gameState.stats.intellect, '#74c0fc')}`, 'color-yellow');
+            printHTML(`  Мораль:         ${bar(gameState.stats.morality, '#51cf66')}`, 'color-yellow');
+            printHTML(`  Эмоции:         ${bar(gameState.stats.emotions, '#fcc419')}`, 'color-yellow');
+            printHTML(`  Осознанность:   ${bar(gameState.stats.awareness, '#cc5de8')}`, 'color-yellow');
+            printHTML(`  Нарушения:      ${bar(gameState.stats.violations, '#ff6b6b')}`, 'color-red');
+
+            divider();
+            print(`  Вектор:         ${directionDisplay(gameState.party_direction)}`, 'color-gray');
+            divider();
+            print(`  Стран: ${gameState.visited_countries.size}/${Object.keys(LOCATIONS).length}`, 'color-gray');
+            print('');
+        }
+
+        function showStats() {
+            cls();
+            header(' СТАТИСТИКА ');
+
+            const s = gameState.stats;
+
+            function bar(val, color) {
+                const filled = Math.min(5, Math.max(0, Math.floor(val / 4)));
+                const empty = 5 - filled;
+                return `<span style="color:${color}">${'█'.repeat(filled)}</span><span class="color-gray">${'░'.repeat(empty)}</span> ${val}`;
+            }
+
+            printHTML(`  Интеллект:    ${bar(s.intellect, '#74c0fc')}`);
+            printHTML(`  Мораль:       ${bar(s.morality, '#51cf66')}`);
+            printHTML(`  Эмоции:       ${bar(s.emotions, '#fcc419')}`);
+            printHTML(`  Осознанность: ${bar(s.awareness, '#cc5de8')}`);
+            printHTML(`  Нарушения:    ${bar(s.violations, '#ff6b6b')}`);
+
+            divider();
+            print(`  Вектор:       ${directionDisplay(gameState.party_direction)}`);
+            print('');
+        }
+
+        function showInventory() {
+            cls();
+            header(' ИНВЕНТАРЬ ');
+
+            if (!gameState.inventory.length) {
+                print('  (пусто)', 'color-gray');
+            } else {
+                gameState.inventory.forEach(item => {
+                    print(`  • ${item}`);
+                });
+            }
+            print('');
+        }
+
+        function showAchievements() {
+            cls();
+            header(' ДОСТИЖЕНИЯ ');
+
+            let found = false;
+            for (const key in HIDDEN_ACHIEVEMENTS) {
+                const ach = HIDDEN_ACHIEVEMENTS[key];
+                if (ach.unlocked) {
+                    print(`🏆 ${ach.name} — ${ach.desc}`, 'color-magenta color-bold');
+                    found = true;
+                }
+            }
+
+            if (!found) {
+                print('Нет открытых достижений', 'color-gray');
+            }
+            print('');
+        }
+
+        function showHelp() {
+            cls();
+            header(' СПРАВКА ');
+
+            const commands = [
+                ['help', 'Эта справка'],
+                ['profile', 'Профиль персонажа'],
+                ['stats', 'Статистика'],
+                ['explore', 'Исследовать местность'],
+                ['work', 'Работать'],
+                ['sleep', 'Спать'],
+                ['inventory', 'Инвентарь'],
+                ['achievements', 'Достижения'],
+                ['die', 'Самоубийство (необратимо)'],
+                ['save', 'Сохранить игру'],
+                ['quit', 'Выйти']
+            ];
+
+            commands.forEach(([cmd, desc]) => {
+                print(`  ${cmd.padEnd(15)} — ${desc}`, 'color-cyan');
+            });
+            print('');
+        }
+
+        async function applyEffects(effects) {
+            for (const [stat, delta] of Object.entries(effects)) {
+                if (gameState.stats.hasOwnProperty(stat)) {
+                    gameState.stats[stat] = Math.max(0, gameState.stats[stat] + delta);
+                    const color = delta > 0 ? '#51cf66' : delta < 0 ? '#ff6b6b' : '#868e96';
+                    const sign = delta > 0 ? '+' : '';
+                    printHTML(`  ${stat.charAt(0).toUpperCase() + stat.slice(1)}: <span style="color:${color}">${sign}${delta}</span>`);
+                }
+            }
+        }
+
+        async function explore() {
+            if (!gameState.alive) {
+                print('Ты мёртв. Нельзя исследовать.', 'color-red');
+                await sleep(1000);
+                return;
+            }
+
+            cls();
+            header(' ИССЛЕДОВАНИЕ ');
+
+            print(`Ты бродишь по ${gameState.location}...`, 'color-gray');
+            await sleep(300);
+
+            const event = EVENTS_POOL[Math.floor(Math.random() * EVENTS_POOL.length)];
+
+            print('', 'color-yellow color-bold');
+            print(`⚡ ${event.name}`, 'color-yellow color-bold');
+            print(event.desc);
+            print('');
+
+            const choices = event.choices;
+            const options = choices.map(c => c.text);
+            const idx = await choiceInput('Что ты делаешь?', options);
+
+            if (idx === null) return;
+
+            const selected = choices[idx];
+            await applyEffects(selected.effects);
+
+            // Комментарий
+            if (selected.effects.morality) {
+                if (selected.effects.morality > 0) {
+                    print('Ты поступил по совести.', 'color-green');
+                } else if (selected.effects.morality < 0) {
+                    print('Ты сделал тёмный выбор.', 'color-red');
+                }
+            }
+
+            // Находка предмета (30%)
+            if (Math.random() < 0.3) {
+                const items = ["Осколок Памяти", "Кристалл Иллюзии", "Пепел Мира", "Эхо Голоса", "Нить Судьбы"];
+                const item = items[Math.floor(Math.random() * items.length)];
+                gameState.inventory.push(item);
+                print(`📦 Найдено: ${item}`, 'color-green');
+            }
+
+            gameState.age += 1;
+            gameState.history.push(`Цикл ${gameState.age}: ${event.name} в ${gameState.location}`);
+
+            const newAch = checkAchievements();
+            if (newAch.length) {
+                print('');
+                newAch.forEach(ach => {
+                    print(`🏆 Скрытое достижение: ${ach.name} — ${ach.desc}`, 'color-magenta color-bold');
+                });
+            }
+
+            print('');
+            showHUD();
+        }
+
+        async function work() {
+            if (!gameState.alive) {
+                print('Ты мёртв. Нельзя работать.', 'color-red');
+                await sleep(1000);
+                return;
+            }
+
+            cls();
+            header(' РАБОТА ');
+
+            print('Ты погружаешься в труд...', 'color-gray');
+            await sleep(500);
+
+            // Спрайт работы на 5 сек
+            showSprite('street');
+            setTimeout(() => hideSprite(), 5000);
+
+            const gains = {
+                intellect: Math.floor(Math.random() * 4),
+                morality: Math.floor(Math.random() * 4) - 1,
+                emotions: Math.floor(Math.random() * 3) - 2
+            };
+
+            await applyEffects(gains);
+            gameState.age += 1;
+            gameState.history.push(`Цикл ${gameState.age}: Работа в ${gameState.location}`);
+
+            print('');
+            print('Труд завершён.', 'color-green');
+            print('');
+            showHUD();
+        }
+
+        async function sleepFunc() {
+            if (!gameState.alive) {
+                print('Ты мёртв. Нельзя спать.', 'color-red');
+                await sleep(1000);
+                return;
+            }
+
+            cls();
+            header(' СОН ');
+
+            print('Ты засыпаешь...', 'color-gray');
+            await sleep(500);
+
+            const dreams = [
+                'Ты видишь себя извне.',
+                'Ты падаешь в бесконечную пустоту.',
+                'Голос зовёт тебя по имени, но не твоему.',
+                'Мир вокруг тебя трескается, как стекло.'
+            ];
+
+            const dream = dreams[Math.floor(Math.random() * dreams.length)];
+            print(dream, 'color-violet');
+
+            gameState.stats.emotions = Math.min(15, gameState.stats.emotions + 1);
+            gameState.age += 1;
+
+            print('');
+            print('Ты проснулся отдохнувшим.', 'color-green');
+            print('');
+            showHUD();
+        }
+
+        async function dieFunc() {
+            if (!gameState.alive) {
+                print('Ты уже мёртв.', 'color-red');
+                await sleep(1000);
+                return;
+            }
+
+            const confirm = await choiceInput('Ты уверен? Это необратимо.', ['Да', 'Нет']);
+
+            if (confirm === 0) {
+                cls();
+                header(' СМЕРТЬ ');
+
+                const deaths = [
+                    'Твоё сердце остановилось.',
+                    'Ты упал с крыши.',
+                    'Болезнь забрала тебя.',
+                    'Несчастный случай оборвал жизнь.'
+                ];
+
+                print(deaths[Math.floor(Math.random() * deaths.length)], 'color-red');
+                print('');
+
+                gameState.alive = false;
+                gameState.death_count += 1;
+                gameState.in_purgatory = true;
+
+                const newAch = checkAchievements();
+                if (newAch.length) {
+                    newAch.forEach(ach => {
+                        print(`🏆 ${ach.name} — ${ach.desc}`, 'color-magenta color-bold');
+                    });
+                    print('');
+                }
+
+                await sleep(2000);
+                purgatory();
+            }
+        }
+
+        async function purgatory() {
+            cls();
+
+            print('', 'color-violet color-bold');
+            await printSlow('...Ты снова здесь.');
+            await printSlow('Круглая платформа. Фиолетовое свечение внизу.');
+            print('', 'color-reset');
+
+            showSprite('purgatory');
+
+            await aiSay('Партия завершена.');
+            await aiSay('Анализирую результаты...');
+            print('');
+            await sleep(800);
+
+            const diffIntellect = gameState.stats.intellect - gameState.start_stats.intellect;
+            const diffMorality = gameState.stats.morality - gameState.start_stats.morality;
+            const diffEmotions = gameState.stats.emotions - gameState.start_stats.emotions;
+
+            print(`Изменения за партию:`, 'color-yellow');
+            const signI = diffIntellect >= 0 ? '+' : '';
+            const signM = diffMorality >= 0 ? '+' : '';
+            const signE = diffEmotions >= 0 ? '+' : '';
+            printHTML(`  Интеллект: <span style="color:${diffIntellect >= 0 ? '#51cf66' : '#ff6b6b'}">${signI}${diffIntellect}</span>`);
+            printHTML(`  Мораль: <span style="color:${diffMorality >= 0 ? '#51cf66' : '#ff6b6b'}">${signM}${diffMorality}</span>`);
+            printHTML(`  Эмоции: <span style="color:${diffEmotions >= 0 ? '#51cf66' : '#ff6b6b'}">${signE}${diffEmotions}</span>`);
+            print('');
+
+            // Обновление баланса
+            const totalChange = diffIntellect + diffMorality + diffEmotions;
+            if (totalChange > 0) {
+                gameState.light = Math.min(100, gameState.light + Math.abs(totalChange));
+                gameState.darkness = 100 - gameState.light;
+                await aiSay('Свет усилился. Ты движешься вверх.');
+            } else if (totalChange < 0) {
+                gameState.darkness = Math.min(100, gameState.darkness + Math.abs(totalChange));
+                gameState.light = 100 - gameState.darkness;
+                await aiSay('Мрак сгустился. Ты опускаешься ниже.');
+            } else {
+                await aiSay('Баланс не изменился.');
+            }
+            print('');
+
+            gameState.rebirth_count += 1;
+
+            await waitEnter('[Нажми Enter для новой партии...]');
+            hideSprite();
+            registrationScene();
+        }
+
+        function sleep(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        // ==================== ОБРАБОТКА КОМАНД ====================
+        const COMMANDS = [
+            "help", "profile", "stats", "explore", "work",
+            "sleep", "inventory", "achievements", "die",
+            "save", "quit", "exit", "q"
+        ];
+
+        function findCommand(cmdInput) {
+            if (!cmdInput) return null;
+
+            cmdInput = cmdInput.trim().toLowerCase();
+
+            if (COMMANDS.includes(cmdInput)) return cmdInput;
+
+            const matches = COMMANDS.filter(c => c.startsWith(cmdInput));
+
+            if (matches.length === 1) return matches[0];
+            if (matches.length > 1) {
+                print(`Неоднозначный ввод. Возможные варианты: ${matches.join(', ')}`, 'color-yellow');
+                return null;
+            }
+            return null;
+        }
+
+        async function processCommand(cmd) {
+            stopTyping();
+
+            switch(cmd) {
+                case 'help':
+                    showHelp();
+                    break;
+                case 'profile':
+                    showProfile();
+                    break;
+                case 'stats':
+                    showStats();
+                    break;
+                case 'explore':
+                    await explore();
+                    break;
+                case 'work':
+                    await work();
+                    break;
+                case 'sleep':
+                    await sleepFunc();
+                    break;
+                case 'inventory':
+                    showInventory();
+                    break;
+                case 'achievements':
+                    showAchievements();
+                    break;
+                case 'die':
+                    await dieFunc();
+                    break;
+                case 'save':
+                    saveGame();
+                    await sleep(1000);
+                    break;
+                case 'quit':
+                case 'exit':
+                case 'q':
+                    saveGame();
+                    cls();
+                    print('Сознание уходит в тишину...', 'color-gray');
+                    inputArea.style.display = 'none';
+                    break;
+                default:
+                    print('Неизвестная команда. Введи help для справки.', 'color-red');
+                    await sleep(1000);
+            }
+
+            if (cmd !== 'quit' && cmd !== 'exit' && cmd !== 'q' && gameState.alive) {
+                showHUD();
+                print('Введи команду (help — справка)', 'color-gray');
+            }
+
+            commandInput.value = '';
+            commandInput.focus();
+        }
+
+        // ==================== ЗАПУСК ИГРЫ ====================
+        async function initGame() {
+            commandInput.addEventListener('keydown', async (e) => {
+                if (e.key === 'Enter' && commandInput.value.trim()) {
+                    const cmd = findCommand(commandInput.value);
+                    if (cmd) {
+                        await processCommand(cmd);
+                    } else if (commandInput.value.trim() !== '') {
+                        print('Неизвестная команда. Введи help для справки.', 'color-red');
+                        commandInput.value = '';
+                    }
+                }
+            });
+
+            // Проверка сохранения
+            if (loadGame()) {
+                cls();
+                print(`💾 Найдено сохранение: ${gameState.consciousness_id}`, 'color-green');
+
+                const idx = await choiceInput('Что делаем?', ['Продолжить', 'Новая игра', 'Удалить сохранение']);
+
+                if (idx === 1) {
+                    deleteSave();
+                    gameState = {
+                        consciousness_id: "", is_engineer: false, avatar_name: "", country: "",
+                        city: "", location: "", settlement_type: "", party_number: 0, party_count: 0,
+                        scenario: ["", "", ""], darkness: 50, light: 50, illusion_level: 5000,
+                        party_direction: "neutral", stats: { intellect: 10, morality: 10, emotions: 10, awareness: 0, violations: 0 },
+                        start_stats: {}, inventory: [], visited_countries: new Set(), visited_cities: new Set(),
+                        visited_locations: new Set(), rebirth_count: 0, death_count: 0, age: 0, alive: true,
+                        in_purgatory: false, kz_verdict: "", history: [], color_scheme: "violet_green"
+                    };
+                } else if (idx === 2) {
+                    deleteSave();
+                    gameState = {
+                        consciousness_id: "", is_engineer: false, avatar_name: "", country: "",
+                        city: "", location: "", settlement_type: "", party_number: 0, party_count: 0,
+                        scenario: ["", "", ""], darkness: 50, light: 50, illusion_level: 5000,
+                        party_direction: "neutral", stats: { intellect: 10, morality: 10, emotions: 10, awareness: 0, violations: 0 },
+                        start_stats: {}, inventory: [], visited_countries: new Set(), visited_cities: new Set(),
+                        visited_locations: new Set(), rebirth_count: 0, death_count: 0, age: 0, alive: true,
+                        in_purgatory: false, kz_verdict: "", history: [], color_scheme: "violet_green"
+                    };
+                } else if (idx === null) {
+                    cls();
+                    print('До встречи.', 'color-gray');
+                    return;
+                }
+            }
+
+            if (!gameState.consciousness_id) {
+                gameState.color_scheme = await chooseColorScheme();
+                print('');
+                await sleep(500);
+                await registrationScene();
+            } else {
+                createAvatar();
+            }
+        }
+
+        // Запуск при загрузке страницы
+        window.onload = initGame;
+    </script>
+</body>
+</html>
