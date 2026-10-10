@@ -1869,14 +1869,10 @@
             // Вектор партии
             if (gameState.light > gameState.darkness) {
                 gameState.party_direction = 'ascend';
-                gameState.illusion_level = Math.max(1, gameState.illusion_level - Math.floor(Math.random() * 1001) + 500);
             } else if (gameState.darkness > gameState.light) {
                 gameState.party_direction = 'descend';
-                gameState.illusion_level = Math.min(10000, gameState.illusion_level + Math.floor(Math.random() * 1001) + 500);
             } else {
                 gameState.party_direction = 'neutral';
-                gameState.illusion_level += Math.floor(Math.random() * 401) - 200;
-                gameState.illusion_level = Math.max(1, Math.min(10000, gameState.illusion_level));
             }
 
             // Спрайт улицы/двора
@@ -1931,12 +1927,13 @@
 
             gameState.stats = {
                 intellect: Math.floor(Math.random() * 11) + 5,
-                morality: Math.floor(Math.random() * 11) + 5,
+                morality: 0,
                 emotions: Math.floor(Math.random() * 11) + 5,
                 awareness: oldAwareness,
                 violations: oldViolations
             };
-
+            
+            recalcMorality();
             gameState.start_stats = { ...gameState.stats };
 
             const [family, year, country] = gameState.scenario;
@@ -2066,11 +2063,10 @@
                 ['work', 'Работать'],
                 ['sleep', 'Спать'],
                 ['inventory', 'Инвентарь'],
-                ['achieve', 'Достижения'],
+                ['achieves', 'Достижения'],
                 ['info', 'Об игре и авторе'],
                 ['die', 'Самоубийство'],
                 ['save', 'Сохранить игру'],
-                ['quit', 'Выйти']
             ];
 
             let html = '<div class="help-grid">';
@@ -2094,6 +2090,7 @@
 
         async function applyEffects(effects) {
             for (const [stat, delta] of Object.entries(effects)) {
+                if (stat === 'morality') continue;   // ← мораль теперь производная
                 if (gameState.stats.hasOwnProperty(stat)) {
                     gameState.stats[stat] = Math.max(0, gameState.stats[stat] + delta);
                     const color = delta > 0 ? '#51cf66' : delta < 0 ? '#ff6b6b' : '#868e96';
@@ -2101,6 +2098,11 @@
                     printHTML(`  ${stat.charAt(0).toUpperCase() + stat.slice(1)}: <span style="color:${color}">${sign}${delta}</span>`);
                 }
             }
+            recalcMorality();   // ← пересчитываем мораль по новому балансу
+        }
+
+        function recalcMorality() {
+          gameState.stats.morality = Math.round(gameState.light / 4);
         }
 
         function updateDarknessLightByAction(effects) {
@@ -2121,9 +2123,10 @@
                 gameState.light = 100 - gameState.darkness;
             }
 
+                recalcMorality();
+
             // Проверка на полную заполненность шкалы
             if (gameState.darkness >= 100 || gameState.light >= 100) {
-                return true; // Триггер смерти/перерождения
             }
             return false;
         }
