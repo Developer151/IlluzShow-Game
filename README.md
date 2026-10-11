@@ -1,6 +1,6 @@
 # WEB-IlluzShow-Game
 
-**ИЛЛЮЗGAME** — фанатская текстовая игра по мотивам вселенной [«ИллюзШоу»](https://www.youtube.com/@PollmixaN), автор вселенной — **PollmixaN**.
+**ИЛЛЮЗGAME** — фанатская текстовая игра по мотивам вселенной [«ИллюзШоу»](https://www.youtube.com/channel/UC7gLox4eWAqhlX2UeJ0TQog), автор вселенной — [**PollmixaN**](https://www.youtube.com/@PollmixaN).
 
 ## О проекте
 
