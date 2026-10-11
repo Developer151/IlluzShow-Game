@@ -52,6 +52,7 @@
         
         #game-title .title-text {
             color: #63e6be;
+            font-size: 12px;  
             font-size: clamp(14px, 5vw, 22px);  /* ← авто-размер под экран */
             font-weight: bold;
             line-height: 1.3;
@@ -226,7 +227,7 @@
         /* --- OVERLAY ПИКСЕЛИЗАЦИИ ФОНА --- */
         #pixel-overlay {
             position: fixed;
-            inset: 0;
+            top: 0; left: 0; right: 0; bottom: 0;
             z-index: 0;                 /* за текстом и спрайтом: меняет фон, не перекрывая реплики ИИ */
             pointer-events: none;
             opacity: 0;
@@ -239,7 +240,7 @@
             position: fixed;
             width: 100%;
             height: 100%;
-            inset: 0;
+            top: 0; left: 0; right: 0; bottom: 0;
             z-index: 0;                 /* за текстом: цифры расползаются по фону, не закрывая реплики */
             display: none;
             pointer-events: none;
@@ -248,7 +249,7 @@
         /* --- ФИНАЛЬНЫЙ CANVAS: матричный шум на весь экран --- */
         #matrix-canvas {
             position: fixed;
-            inset: 0;
+            top: 0; left: 0; right: 0; bottom: 0;
             width: 100%;
             height: 100%;
             z-index: 20;                /* поверх фона; ИИ на финале больше не пишет */
@@ -259,7 +260,7 @@
         /* --- Крупное слово ОШИБКА поверх финального шума --- */
         #final-error {
             position: fixed;
-            inset: 0;
+            top: 0; left: 0; right: 0; bottom: 0;
             z-index: 21;
             display: flex;
             align-items: center;
@@ -279,6 +280,7 @@
         #final-error span {
             font-family: 'Arial', monospace;
             font-weight: 700;
+            font-size: 12px;  
             font-size: clamp(30px, 6.5vw, 110px);
             letter-spacing: .06em;
             line-height: 1.05;
@@ -421,6 +423,7 @@
            align-items: center;
            width: 100%;
            gap: 0;
+           font-size: 12px;  
            font-size: clamp(8px, 3.5vw, 22px);
            line-height: 1.3;
            white-space: nowrap;
@@ -472,7 +475,7 @@
         /* Стартовая ASCII-заставка ILLUZGAME */
         #intro-splash {
             position: fixed;
-            inset: 0;
+            top: 0; left: 0; right: 0; bottom: 0;
             z-index: 100000;
             display: flex;
             align-items: center;
@@ -485,7 +488,7 @@
         #intro-splash.fade-out { opacity: 0; pointer-events: none; }
         #intro-matrix-canvas {
             position: absolute;
-            inset: 0;
+            top: 0; left: 0; right: 0; bottom: 0;
             width: 100%;
             height: 100%;
             z-index: 0;
@@ -495,6 +498,7 @@
             position: relative;
             z-index: 1;
             width: min(100%, 920px);
+            font-size: 12px;  
             padding: clamp(10px, 3vw, 28px);
             border: 2px solid #b026ff;
             outline: 1px solid rgba(0, 229, 255, .75);
@@ -505,6 +509,7 @@
         }
         #intro-splash .splash-kicker {
             color: #00e5ff;
+            font-size: 12px;  
             font-size: clamp(10px, 2vw, 15px);
             letter-spacing: .24em;
             margin-bottom: 14px;
@@ -515,12 +520,14 @@
             overflow: hidden;
             color: #c15bff;
             text-shadow: 0 0 9px rgba(176, 38, 255, .8);
+            font-size: 12px;  
             font: 700 clamp(5px, 1.35vw, 13px)/1.12 "Courier New", monospace;
         }
         #intro-splash .splash-binary {
             margin-top: 15px;
             color: #00e5ff;
             letter-spacing: .08em;
+            font-size: 12px;  
             font: 700 clamp(9px, 1.8vw, 16px)/1.2 "Courier New", monospace;
             min-height: 1.2em;
         }
@@ -532,6 +539,7 @@
         #splash-ascii {
             color: #a610c7;
             font-family: 'Courier New', monospace;
+            font-size: 12px;  
             font-size: clamp(6px, 1.6vw, 14px);   /* авто-размер */
             line-height: 1.0;                     /* без лишнего воздуха */
             letter-spacing: 0;
@@ -546,6 +554,7 @@
         #splash-bits {
             color: #4cd8e2;
             font-family: 'Courier New', monospace;
+            font-size: 12px;  
             font-size: clamp(8px, 2vw, 16px);
             margin-top: 12px;
             white-space: pre;
@@ -555,6 +564,7 @@
             margin-top: 18px;
             opacity: 0;
             color: #94d82d;
+            font-size: 12px;  
             font-size: clamp(9px, 1.6vw, 13px);
             letter-spacing: .12em;
             text-transform: uppercase;
@@ -1365,26 +1375,23 @@
         }
 
         function saveGame() {
-            const saveData = {
-                ...gameState,
+            const saveData = Object.assign({}, gameState, {
                 visited_countries: Array.from(gameState.visited_countries),
                 visited_cities: Array.from(gameState.visited_cities),
                 visited_locations: Array.from(gameState.visited_locations)
-            };
+            });
             localStorage.setItem('illusionShowSave', JSON.stringify(saveData));
             print('💾 Прогресс сохранён', 'color-green');
         }
-
         function loadGame() {
             const saved = localStorage.getItem('illusionShowSave');
             if (saved) {
                 const data = JSON.parse(saved);
-                gameState = {
-                    ...data,
+                gameState = Object.assign({}, data, {
                     visited_countries: new Set(data.visited_countries || []),
                     visited_cities: new Set(data.visited_cities || []),
                     visited_locations: new Set(data.visited_locations || [])
-                };
+                });
                 return true;
             }
             return false;
@@ -1932,9 +1939,9 @@
                 awareness: oldAwareness,
                 violations: oldViolations
             };
-            
+
             recalcMorality();
-            gameState.start_stats = { ...gameState.stats };
+            gameState.start_stats = Object.assign({}, gameState.stats);
 
             const [family, year, country] = gameState.scenario;
 
@@ -2722,25 +2729,28 @@
             return new Promise(resolve => {
                 const canvas = document.getElementById('matrix-canvas');
                 canvas.style.display = 'block';
-                startMatrixNoise(canvas, {
+        
+                // ← сохраняем ссылку на stop первого запуска
+                let stopNoise = startMatrixNoise(canvas, {
                     rampMultiplier: 5,
-                    rampMs: 10000        // разгон мерцания за 30 секунд
+                    rampMs: 10000
                 });
-
+        
                 const errorEl = document.getElementById('final-error');
                 (async () => {
-                    await sleep(10000);          // ошибка только после максимального разгона
+                    await sleep(10000);
                     errorEl.classList.add('breathing');
-                    stopNoise();
+        
+                    stopNoise();   // ← теперь работает — ссылка есть
                     canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
-    
-                    let stopNoise = startMatrixNoise(canvas, {
-                        rampMultiplier: 5,
-                        rampMs: 10000
-                    });  // спокойное медленное мерцание
-            })();
-
-                // сцена бесконечна (финальный экран) — резолвим сразу, шум идёт фоном
+        
+                    stopNoise = startMatrixNoise(canvas, {
+                        baseInterval: 260,   // медленно, тягучее мерцание
+                        brightChance: 0.02,
+                        gapChance: 0.55
+                    });
+                })();
+        
                 resolve();
             });
         }
