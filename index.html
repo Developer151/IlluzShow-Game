@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ILLUZGAME</title>
+    <title>ИЛЛЮЗGAME</title>
     <style>
         * {
             margin: 0;
@@ -40,6 +40,7 @@
 
         #game-title .title-cubes,
         #game-title .title-text {
+            font-size: 12px;   
             font-size: clamp(10px, 4vw, 22px);   /* ← ключевое: авто-размер */
             line-height: 1.3;
             white-space: nowrap;
@@ -136,7 +137,7 @@
 
         #input-line {
             display: flex;
-            gap: 5px;
+            margin: 5px;
             align-items: center;
         }
 
@@ -172,14 +173,14 @@
         .info-grid {
             display: flex;
             flex-direction: column;
-            gap: 4px;
+            margin: 4px;
             padding: 4px 0;
         }
         
         .info-row {
             display: grid;
             grid-template-columns: 130px 1fr;  /* метка / значение */
-            gap: 8px;
+            margin: 8px;
             align-items: baseline;
         }
         
@@ -333,7 +334,7 @@
         .choice-buttons {
             display: flex;
             flex-direction: column;
-            gap: 10px;
+            margin: 10px;
             margin: 15px 0;
         }
 
@@ -393,14 +394,14 @@
         .help-grid {
             display: grid;
             grid-template-columns: 1fr;
-            gap: 4px;
+            margin: 4px;
             padding: 4px 0;
         }
         
         .help-row {
             display: grid;
             grid-template-columns: 120px 20px 1fr;
-            gap: 8px;
+            margin: 8px;
             align-items: baseline;
         }
         
@@ -422,7 +423,7 @@
            justify-content: center;
            align-items: center;
            width: 100%;
-           gap: 0;
+           margin: 0;
            font-size: 12px;  
            font-size: clamp(8px, 3.5vw, 22px);
            line-height: 1.3;
@@ -574,6 +575,37 @@
             animation: splashBlink 1s steps(1) infinite;
         }
 
+        .dl-summary {
+            white-space: normal; /* Отменяет pre-wrap, убирая лишние пробелы из HTML-шаблона */
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin: 10px 0;
+            font-family: 'Arial', monospace;
+            line-height: 1.2;
+        }
+
+        .dl-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .dl-label {
+            width: 50px;
+            color: #e0e0e0;
+        }
+
+        .dl-bars {
+            display: flex;
+            flex-direction: column;
+            line-height: 1.1; /* Убирает лишний вертикальный зазор между кубиками */
+        }
+
+        .dl-value {
+            color: #e0e0e0;
+        }
+
         @keyframes splashBlink { 50% { opacity: 0; } }
         @media (max-width: 520px) {
             #intro-splash .splash-frame { outline-offset: 4px; }
@@ -589,7 +621,7 @@
     <div id="intro-splash" aria-label="Заставка ILLUZGAME">
         <canvas id="intro-matrix-canvas" aria-hidden="true"></canvas>
         <div class="splash-frame">
-            <div class="splash-kicker">ЗАПУСК ИЛЛЮЗGAME</div>
+            <div class="splash-kicker">ЗАПУСК ИЛЛЮЗGAME <span id="game-version" style="font-size: 0.9em"></span></div>
             <pre id="splash-ascii" aria-label="ILLUZGAME"></pre>
             <div class="splash-binary"><span id="splash-bits"></span><span class="splash-cursor">█</span></div>
             <div class="splash-continue" id="splash-continue">нажми клавишу / клик / тап, чтобы войти</div>
@@ -603,7 +635,7 @@
     <div class="title-row">
         <span class="title-edge">■</span>
         <span class="title-cubes-violet">■■■■■■■■■■|</span>
-        <span class="title-center">ILLUZGAME</span>
+        <span class="title-center">ИЛЛЮЗGAME</span>
         <span class="title-cubes-violet">|■■■■■■■■■■</span>
         <span class="title-edge">■</span>
     </div>
@@ -1191,7 +1223,7 @@
 
         function printHTML(html) {
             const div = document.createElement('div');
-            div.innerHTML = html;
+            div.innerHTML = html.trim()
             output.appendChild(div);
             output.scrollTop = output.scrollHeight;
         }
@@ -1301,18 +1333,37 @@
         function printDarknessLightSummary() {
             const d = gameState.darkness;
             const l = gameState.light;
-
-            // Цветные полосы
-            const darkFilled = Math.round(d / 10);
-            const darkEmpty = 10 - darkFilled;
-            const lightFilled = Math.round(l / 10);
-            const lightEmpty = 10 - lightFilled;
-
-            const darkBar = '█'.repeat(darkFilled) + '░'.repeat(darkEmpty);
-            const lightBar = '█'.repeat(lightFilled) + '░'.repeat(lightEmpty);
-
-            printHTML(`  Мрак: <span style="color: #a610c7">${darkBar}</span> ${d}%`);
-            printHTML(`  Свет: <span style="color: #fcc419">${lightBar}</span> ${l}%`);
+        
+            const darkCol = gameState.color_scheme === 'black_white' ? '#000000' : '#cc5de8';
+            const lightCol = gameState.color_scheme === 'black_white' ? '#ffffff' : '#51cf66';
+            const grayCol = '#868e96';
+        
+            const [darkTop, darkBottom] = forceBar5(d, darkCol, grayCol);
+            const [lightTop, lightBottom] = forceBar5(l, lightCol, grayCol);
+        
+            // Верстка через классы
+            const html = `
+                <div class="dl-summary">
+                    <div class="dl-row">
+                        <div class="dl-label">Мрак:</div>
+                        <div class="dl-bars">
+                            <div>${darkTop}</div>
+                            <div>${darkBottom}</div>
+                        </div>
+                        <div class="dl-value">${d}%</div>
+                    </div>
+                    <div class="dl-row">
+                        <div class="dl-label">Свет:</div>
+                        <div class="dl-bars">
+                            <div>${lightTop}</div>
+                            <div>${lightBottom}</div>
+                        </div>
+                        <div class="dl-value">${l}%</div>
+                    </div>
+                </div>
+            `;
+            
+            printHTML(html);
         }
 
         function forceBar5(value, filledColor, emptyColor) {
@@ -1684,6 +1735,32 @@
             });
         }
 
+        async function loadVersion() {
+            try {
+                // Запрашиваем файл VERSION.json (с кэш-бастингом, чтобы не брало старую версию)
+                const response = await fetch('version.json?t=' + Date.now());
+                if (!response.ok) throw new Error('Файл версии не найден');
+                
+                const data = await response.json();
+
+                currentVersion = data.version; 
+                
+                // Вставляем версию в HTML
+                const versionEl = document.getElementById('game-version');
+                if (versionEl) {
+                    versionEl.textContent = `v${data.version}`;
+                }
+            } catch (error) {
+                console.warn('Не удалось загрузить версию:', error);
+                // Если файла нет (например, при локальном запуске без сервера), пишем дефолт
+                const versionEl = document.getElementById('game-version');
+                if (versionEl) versionEl.textContent = 'v0.3.7-dev';
+            }
+        }
+
+        // Запускаем загрузку версии при старте
+        loadVersion();
+
         // ==================== ТАЙМЕР ЧИСТИЛИЩА ====================
         // Всего 200 сек (3:20). Показ с самого начала (уже <= 3:20).
         // <=20с и >10с: авто-назначение партии. <=10с: отсчёт как перед партией (10с).
@@ -1836,11 +1913,27 @@
             const [darkTop, darkBottom] = forceBar5(gameState.darkness, darkCol, grayCol);
             const [lightTop, lightBottom] = forceBar5(gameState.light, lightCol, grayCol);
 
-            printHTML(`  Мрак: <span style="color:${darkCol}">${darkTop}</span> ${gameState.darkness}%`);
-            printHTML(`        <span style="color:${darkCol}">${darkBottom}</span>`);
-            printHTML(`  Свет: <span style="color:${lightCol}">${lightTop}</span> ${gameState.light}%`);
-            printHTML(`        <span style="color:${lightCol}">${lightBottom}</span>`);
-            print('');
+            const html = `
+                <div class="dl-summary">
+                    <div class="dl-row">
+                        <div class="dl-label">Мрак:</div>
+                        <div class="dl-bars">
+                            <div>${darkTop}</div>
+                            <div>${darkBottom}</div>
+                        </div>
+                        <div class="dl-value">${gameState.darkness}%</div>
+                    </div>
+                    <div class="dl-row">
+                        <div class="dl-label">Свет:</div>
+                        <div class="dl-bars">
+                            <div>${lightTop}</div>
+                            <div>${lightBottom}</div>
+                        </div>
+                        <div class="dl-value">${gameState.light}%</div>
+                    </div>
+                </div>
+            `;
+            printHTML(html);
 
             if (gameState.light > gameState.darkness) {
                 await aiSay('Свет преобладает. Следующая партия будет благоприятной.');
@@ -2092,7 +2185,11 @@
 
         function info() {
             divider()
-            printHTML("Игра ILLUZGAME запущена в разработку 19.08.2026 и развивается с участием нескольких нейросетей: Kimi, Claude, Chat GPT, DeepSeek, Qwen, причем полностью на бесплатных тарифах. Нейросети не задают ОР, а лишь реализуют его!!! На момент 19 сентября: Сегодня уже 19.09. ИГРЕ ИСПОЛНИЛСЯ МЕСЯЦ! За это время проект пережил много эволюций, c 0.1.0 на Питоне, до 0.2.3 уже на ВЕБе. Я вкладываю душу в опрятность UI, в логику и в целом стремлюсь улучшать UX. Состою в Ковчеге, Мраке, Красном Рынке, мой тг - @slava_kos_2006, а ник на GitHub - Developer151")
+            printHTML(`<b>Версия игры:</b> v${currentVersion}`, 'color-cyan');
+            printHTML(''); // Пустая строка для отступа
+            printHTML("Игра ИЛЛЮЗGAME запущена в разработку 19.08.2026 и развивается с участием нескольких нейросетей: Kimi, Claude, Chat GPT, DeepSeek, Qwen, причем полностью на бесплатных тарифах.")
+            printHTML("Нейросети не задают ОР, а лишь реализуют его!!! На момент 19 сентября: Сегодня, 19.09., ИГРЕ ИСПОЛНИЛСЯ МЕСЯЦ!")
+            printHTML("Я вкладываю душу в опрятность UI, в логику и в целом стремлюсь улучшать UX. Состою в Ковчеге, Тайне, Красном Рынке, мой тг - @slava_kos_2006, а ник на GitHub - Developer151")
         }
 
         async function applyEffects(effects) {
@@ -2374,8 +2471,8 @@
             print('');
 
             // Обновление баланса
-            const totalChange = diffIntellect + diffMorality + diffEmotions;
-            if (totalChange > 0) {
+           const totalChange = diffIntellect + diffEmotions;
+                if (totalChange > 0) {
                 gameState.light = Math.min(100, gameState.light + Math.abs(totalChange));
                 gameState.darkness = 100 - gameState.light;
                 await aiSay('Свет усилился. Ты движешься вверх.');
@@ -2747,7 +2844,7 @@
                     stopNoise = startMatrixNoise(canvas, {
                         baseInterval: 260,   // медленно, тягучее мерцание
                         brightChance: 0.02,
-                        gapChance: 0.55
+                        marginChance: 0.55
                     });
                 })();
         
@@ -2858,7 +2955,7 @@
                 dimColor = (a) => `rgba(130, 130, 165, ${a})`,
                 brightColor = 'rgba(225, 225, 240, 0.85)',
                 brightChance = 0.035,
-                gapChance = 0.34,
+                marginChance = 0.34,
                 baseInterval = 90,   // мс между перерисовками на старте
                 rampMultiplier = 1,  // во сколько раз ускоряется мерцание к концу разгона
                 rampMs = 0,          // за сколько мс достигается rampMultiplier (0 = без разгона)
@@ -2937,7 +3034,7 @@
                         // === РЕЖИМ РАСПЫЛИТЕЛЯ (аэрограф) ===
                         // Клетка "прогружается", когда прогресс времени дошёл до её
                         // случайного порога, и ПОСЛЕ этого остаётся занятой навсегда:
-                        // никаких gapChance-пропусков, чтобы экран не мерцал дырами,
+                        // никаких marginChance-пропусков, чтобы экран не мерцал дырами,
                         // а точечно и необратимо заполнялся сеткой символов.
                         if (sprayMs > 0 && sprayThresh) {
                             if (sprayThresh[r * cols + c] > sprayP) continue; // ещё не прогрузилась
@@ -2954,7 +3051,7 @@
                             continue;
                         }
 
-                        if (Math.random() < gapChance) continue; // пропуски, как на скриншоте-референсе
+                        if (Math.random() < marginChance) continue; // пропуски, как на скриншоте-референсе
                         const ch = chars[(Math.random() * chars.length) | 0];
                         const bright = Math.random() < brightChance;
                         ctx.fillStyle = bright ? brightColor : dimColor(0.10 + Math.random() * 0.22);
@@ -3068,13 +3165,6 @@
                 6, 45, 150
             );
 
-            // Заголовок полностью прогружен — матричный фон больше не нужен,
-            // гасим его насовсем (а не просто приглушаем).
-            matrixCanvas.style.transition = 'opacity 400ms ease';
-            matrixCanvas.style.opacity = '0';
-            stopMatrix();
-            await sleep(150);
-
             // --- Фаза 4: промаргивает ИЛЛЮЗ, затем ГЕЙМ (как и раньше) ---
             await flickerToggle(
                 () => { art.textContent = illuzPart + "\n" + gameBlank; },
@@ -3087,6 +3177,11 @@
                 () => { art.textContent = illuzPart + "\n" + gameBlank; },
                 6, 45, 150
             );
+
+            // ВТОРАЯ ПОЛОВИНА ПРОГРУЖЕНА — теперь плавно гасим матричный шум
+            matrixCanvas.style.transition = 'opacity 1000ms ease';
+            matrixCanvas.style.opacity = '0';
+            stopMatrix(); // Останавливаем рендер в фоне
 
             // Бинарная строка появляется после того, как обе части прогрузились.
             bits.textContent = binary;
@@ -3107,8 +3202,12 @@
             });
 
             splash.classList.add('fade-out');
+            matrixCanvas.style.transition = 'opacity 450ms ease';
+            matrixCanvas.style.opacity = '0';
+        
             await new Promise(resolve => setTimeout(resolve, 450));
             splash.remove();
+            stopMatrix(); // Останавливаем рендер, чтобы не жрал ресурсы в фоне
         }
 
         // ==================== ЗАПУСК ИГРЫ ====================
