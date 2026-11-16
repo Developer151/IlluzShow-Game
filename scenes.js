@@ -154,6 +154,27 @@
             commandInput.focus();
         }
 
+        async function checkRandomDeath() {
+            if (Math.random() < 0.01) { // 1% шанс
+                gameState.alive = false;
+                gameState.death_count += 1;
+                gameState.in_purgatory = true;
+                
+                header(' НЕЛЕПАЯ СЛУЧАЙНОСТЬ ');
+                print('Несчастный случай оборвал вашу жизнь. Иногда судьба просто не на вашей стороне.', 'color-red');
+                print('');
+                
+                const newAch = checkAchievements();
+                if (newAch.length) {
+                    newAch.forEach(ach => print(`🏆 ${ach.name} — ${ach.desc}`, 'color-magenta color-bold'));
+                }
+                
+                await sleep(2000);
+                await purgatory();
+                return true; // Игрок умер
+            }
+            return false; // Игрок выжил
+        }
 
         async function explore() {
             if (!gameState.alive) {
@@ -164,6 +185,14 @@
         
             if (gameState.age >= 76.5) {
                 return ageLimitDeath();
+            }
+
+            if (gameState.fatigueCount >= 2) {
+                if (Math.random() < 0.5) {
+                    print('Ваш аватар устал, поспите', 'color-red');
+                    await sleep(1000);
+                    return; // Прерываем исследование
+                }
             }
         
             header(' ИССЛЕДОВАНИЕ ');
@@ -213,10 +242,14 @@
                 `Возраст ${formatAge(ageBefore)}–${formatAge(gameState.age)}: ${event.name} в ${gameState.location}`
             );
             
+            gameState.fatigueCount++; // НОВОЕ: Увеличиваем усталость
+            checkAgeMilestones(); 
+
             // ... (тут код проверки ачивок)
             showHUD();
             print('');
-            
+            const isRandomDead = await checkRandomDeath();
+                if (isRandomDead) return;
             // Если перешагнули 76.5, проверяем на случайную смерть
             const isDead = await checkPostLimitDeath();
         
@@ -235,6 +268,8 @@
                 await sleep(1000);
                 return;
             }
+
+            checkAgeMilestones();
 
             //cls();
             header(' РАБОТА ');
@@ -267,10 +302,12 @@
         // ... (тут код проверки ачивок)
         showHUD();
         print('');
-        
+
+        const isRandomDead = await checkRandomDeath();
+            if (isRandomDead) return;
         // Если перешагнули 76.5, проверяем на случайную смерть
         const isDead = await checkPostLimitDeath();
-        if (isDead) return;
+            if (isDead) return;
         }
 
         async function sleepFunc() {
@@ -279,6 +316,7 @@
                 await sleep(1000);
                 return;
             }
+            gameState.fatigueCount = 0;
 
             //cls();
             header(' СОН ');
@@ -312,46 +350,8 @@
             // Обновляем соотношение мрака/света по действиям
             const sleepGains = { awareness: 1 };
             const shouldRebirthSleep = updateDarknessLightByAction(sleepGains);
-        }
-
-        async function dieFunc() {
-            if (!gameState.alive) {
-                print('Ты уже мёртв.', 'color-red');
-                await sleep(1000);
-                return;
-            }
-
-            const confirm = await choiceInput('Ты уверен? Это необратимо.', ['Да', 'Нет']);
-
-            if (confirm === 0) {
-                //cls();
-                header(' СМЕРТЬ ');
-
-                const deaths = [
-                    'Твоё сердце остановилось.',
-                    'Ты упал с крыши.',
-                    'Болезнь забрала тебя.',
-                    'Несчастный случай оборвал жизнь.'
-                ];
-
-                print(deaths[Math.floor(Math.random() * deaths.length)], 'color-red');
-                print('');
-
-                gameState.alive = false;
-                gameState.death_count += 1;
-                gameState.in_purgatory = true;
-
-                const newAch = checkAchievements();
-                if (newAch.length) {
-                    newAch.forEach(ach => {
-                        print(`🏆 ${ach.name} — ${ach.desc}`, 'color-magenta color-bold');
-                    });
-                    print('');
-                }
-
-                await sleep(2000);
-                return purgatory();
-            }
+            const isRandomDead = await checkRandomDeath();
+                if (isRandomDead) return;
         }
 
         async function purgatory() {

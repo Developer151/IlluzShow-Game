@@ -152,7 +152,11 @@
             history: [],
             color_scheme: "",
             achievements: JSON.parse(JSON.stringify(DEFAULT_ACHIEVEMENTS)),
-            postLimitActions: 0
+            postLimitActions: 0,
+            fatigueCount: 0, 
+            workUnlockedNotificationShown: false, 
+            workHighlightActive: false,
+            workHighlightUses: 0
         };
 
         let currentScene = "intro";
@@ -977,8 +981,19 @@
             print('');
         }
 
+        function checkAgeMilestones() {
+            if (gameState.age >= 16 && !gameState.workUnlockedNotificationShown) {
+                gameState.workUnlockedNotificationShown = true;
+                gameState.workHighlightActive = true;
+                gameState.workHighlightUses = 0;
+                
+                header(' НОВАЯ ФУНКЦИЯ ');
+                print('Появилась новая команда, введите h или help чтобы её увидеть', 'color-yellow');
+                print('');
+            }
+        }
+
         function showHelp() {
-            //cls();
             header(' СПРАВКА ');
 
             const commands = [
@@ -986,14 +1001,31 @@
                 ['profile', 'Профиль персонажа'],
                 ['stats', 'Статистика'],
                 ['explore', 'Исследовать местность'],
-                ['work', 'Работать'],
                 ['sleep', 'Спать'],
                 ['inventory', 'Инвентарь'],
-                ['achieves', 'Достижения'],
+                ['achieve', 'Достижения'],
                 ['info', 'Об игре и авторе'],
-                ['die', 'Самоубийство'],
                 ['save', 'Сохранить игру'],
             ];
+
+            // Добавляем work только если возраст 16+
+            if (gameState.age >= 16) {
+                let workLabel = 'work';
+                
+                // Если нужно показать выделение
+                if (gameState.workHighlightActive) {
+                    workLabel = `<span class="help-cmd-wrapper">work <span class="new-badge">Новое</span></span>`;
+                    gameState.workHighlightUses++;
+                    
+                    // Если это 3-й или более вывод help, убираем выделение
+                    if (gameState.workHighlightUses >= 3) {
+                        gameState.workHighlightActive = false;
+                    }
+                }
+                
+                // Вставляем work после explore (индекс 3, значит вставляем на 4-ю позицию)
+                commands.splice(4, 0, [workLabel, 'Работать']);
+            }
 
             let html = '<div class="help-grid">';
             commands.forEach(([cmd, desc]) => {
@@ -1255,7 +1287,7 @@
         // ==================== ОБРАБОТКА КОМАНД ====================
         const COMMANDS = [
             "help", "profile", "stats", "explore", "work",
-            "sleep", "inventory", "achieve", "die",
+            "sleep", "inventory", "achieve",
             "save", "info"
         ];
 
@@ -1305,7 +1337,13 @@
                         await explore();
                         break;
                     case 'work':
-                        await work();
+                        if (gameState.age < 16) {
+                            print('Вы должны прожить до 16 лет для открытия команды', 'color-red');
+                            await sleep(1000);
+                        } else {
+                            gameState.workHighlightActive = false; // Убираем выделение при использовании
+                            await work();
+                        }
                         break;
                     case 'sleep':
                         await sleepFunc();
@@ -1315,9 +1353,6 @@
                         break;
                     case 'achieve':
                         showAchievements();
-                        break;
-                    case 'die':
-                        await dieFunc();
                         break;
                     case 'save':
                         saveGame();
@@ -1636,10 +1671,12 @@
                         consciousness_id: "", is_engineer: false, avatar_name: "", country: "",
                         city: "", location: "", settlement_type: "", party_number: 0, party_count: 0,
                         scenario: ["", "", ""], darkness: 50, light: 50, illusion_level: 5000,
-                        party_direction: "neutral", stats: { intellect: 10, morality: 10, emotions: 10, awareness: 0, violations: 0 },
-                        start_stats: {}, inventory: [], visited_countries: new Set(), visited_cities: new Set(),
+                        party_direction: "neutral", stats: { intellect: 10, morality: 10, emotions: 10, 
+                        awareness: 0, violations: 0 }, start_stats: {}, inventory: [], visited_countries: new Set(), visited_cities: new Set(),
                         visited_locations: new Set(), rebirth_count: 0, death_count: 0, age: 0, alive: true,
-                        in_purgatory: false, kz_verdict: "", history: [], color_scheme: "", achievements: JSON.parse(JSON.stringify(DEFAULT_ACHIEVEMENTS))
+                        in_purgatory: false, fatigueCount: 0, workUnlockedNotificationShown: false, 
+                        workHighlightActive: false,workHighlightUses: 0, kz_verdict: "", history: [], color_scheme: "", 
+                        achievements: JSON.parse(JSON.stringify(DEFAULT_ACHIEVEMENTS))
                     };
                 } else if (idx === 2) {
                     deleteSave();
@@ -1647,10 +1684,12 @@
                         consciousness_id: "", is_engineer: false, avatar_name: "", country: "",
                         city: "", location: "", settlement_type: "", party_number: 0, party_count: 0,
                         scenario: ["", "", ""], darkness: 50, light: 50, illusion_level: 5000,
-                        party_direction: "neutral", stats: { intellect: 10, morality: 10, emotions: 10, awareness: 0, violations: 0 },
-                        start_stats: {}, inventory: [], visited_countries: new Set(), visited_cities: new Set(),
+                        party_direction: "neutral", stats: { intellect: 10, morality: 10, emotions: 10, awareness: 0, 
+                        violations: 0 }, start_stats: {}, inventory: [], visited_countries: new Set(), visited_cities: new Set(),
                         visited_locations: new Set(), rebirth_count: 0, death_count: 0, age: 0, alive: true,
-                        in_purgatory: false, kz_verdict: "", history: [], color_scheme: "", achievements: JSON.parse(JSON.stringify(DEFAULT_ACHIEVEMENTS))
+                        in_purgatory: false, kz_verdict: "", history: [], color_scheme: "", fatigueCount: 0, 
+                        workUnlockedNotificationShown: false, workHighlightActive: false, workHighlightUses: 0,
+                        achievements: JSON.parse(JSON.stringify(DEFAULT_ACHIEVEMENTS))
                     };
                 } else if (idx === null) {
                     //cls();

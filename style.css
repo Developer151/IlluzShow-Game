@@ -606,3 +606,35 @@
                 font-size: calc((100vw - 90px) / 27);
             }
         }
+
+        .help-cmd-wrapper {
+            position: relative;
+            display: inline-block;
+            padding: 2px 8px;
+            border: 1px solid #fcc419;         /* Желтая обводка */
+            border-radius: 4px;
+            background: rgba(252, 196, 25, 0.1); /* Легкая желтая заливка */
+            box-shadow: 0 0 8px rgba(252, 196, 25, 0.3); /* Неоновое свечение */
+            color: #fcc419;                    /* Текст команды тоже делаем желтым */
+        }
+        
+        .new-badge {
+            display: inline-block;
+            color: #fcc419; 
+            font-size: 11px;
+            font-weight: bold;
+            position: absolute;
+            top: -16px;                        /* Поднимаем плашку над рамкой */
+            left: 50%;
+            background: #1a1a1a;               /* Темный фон, чтобы перекрыть линию обводки сзади */
+            padding: 0 4px;
+            transform: translateX(-50%);
+            white-space: nowrap;
+            animation: tiltBadge 1.5s ease-in-out infinite alternate;
+            text-shadow: 0 0 5px rgba(252, 196, 25, 0.8);
+        }
+        
+        @keyframes tiltBadge {
+            0% { transform: translateX(-50%) rotate(-5deg); }
+            100% { transform: translateX(-50%) rotate(5deg); }
+        }
