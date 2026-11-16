@@ -401,6 +401,7 @@
         .help-cmd {
             color: #63e6be;
             font-family: 'Arial', monospace;
+            white-space: nowrap;
         }
         
         .help-arrow {
@@ -607,31 +608,36 @@
             }
         }
 
-        .help-cmd-wrapper {
-            position: relative;
-            display: inline-block;
-            padding: 2px 8px;
-            border: 1px solid #fcc419;         /* Желтая обводка */
-            border-radius: 4px;
-            background: rgba(252, 196, 25, 0.1); /* Легкая желтая заливка */
-            box-shadow: 0 0 8px rgba(252, 196, 25, 0.3); /* Неоновое свечение */
-            color: #fcc419;                    /* Текст команды тоже делаем желтым */
+        .help-row.highlighted-row {
+            border: 1px solid #fcc419;         /* Желтая рамка вокруг всей строки */
+            border-radius: 6px;
+            background: rgba(252, 196, 25, 0.08); /* Легкая заливка */
+            box-shadow: 0 0 8px rgba(252, 196, 25, 0.3); /* Свечение */
+            padding: 6px 12px;                 /* Внутренние отступы */
+            margin: 4px 0;                     /* Внешние отступы (вместо стандартных 8px) */
         }
         
+        /* Делаем текст самой команды work желтым */
+        .help-row.highlighted-row .help-cmd {
+            color: #fcc419;
+        }
+        
+        /* Плашка "Новое" */
         .new-badge {
             display: inline-block;
-            color: #fcc419; 
-            font-size: 11px;
+            color: #14152e;                    /* Темный текст для контраста */
+            background: #fcc419;               /* Желтый фон */
+            font-size: 10px;
             font-weight: bold;
-            position: absolute;
-            top: -16px;                        /* Поднимаем плашку над рамкой */
-            left: 50%;
-            background: #1a1a1a;               /* Темный фон, чтобы перекрыть линию обводки сзади */
-            padding: 0 4px;
-            transform: translateX(-50%);
+            position: static;                  /* Убираем абсолютное позиционирование */
+            transform-origin: center;          /* Точка вращения по центру */
+            padding: 1px 6px;
+            border-radius: 4px;
             white-space: nowrap;
+            margin-left: 25px;                  /* Отступ от слова work */
+            vertical-align: middle;            /* Выравниваем по центру строки */
+            box-shadow: 0 0 5px rgba(252, 196, 25, 0.5);
             animation: tiltBadge 1.5s ease-in-out infinite alternate;
-            text-shadow: 0 0 5px rgba(252, 196, 25, 0.8);
         }
         
         @keyframes tiltBadge {

@@ -1008,13 +1008,12 @@
                 ['save', 'Сохранить игру'],
             ];
 
+            let isWorkHighlighted = false;
+
             // Добавляем work только если возраст 16+
             if (gameState.age >= 16) {
-                let workLabel = 'work';
-                
-                // Если нужно показать выделение
                 if (gameState.workHighlightActive) {
-                    workLabel = `<span class="help-cmd-wrapper">work <span class="new-badge">Новое</span></span>`;
+                    isWorkHighlighted = true;
                     gameState.workHighlightUses++;
                     
                     // Если это 3-й или более вывод help, убираем выделение
@@ -1022,15 +1021,19 @@
                         gameState.workHighlightActive = false;
                     }
                 }
-                
-                // Вставляем work после explore (индекс 3, значит вставляем на 4-ю позицию)
-                commands.splice(4, 0, [workLabel, 'Работать']);
+                // Вставляем work после explore (на 5-ю позицию)
+                commands.splice(4, 0, ['work', 'Работать']);
             }
 
             let html = '<div class="help-grid">';
             commands.forEach(([cmd, desc]) => {
-                html += `<div class="help-row">`;
-                html += `<span class="help-cmd">${cmd}</span>`;
+                // Проверяем, нужно ли выделить именно эту строку
+                let isHighlight = (cmd === 'work' && isWorkHighlighted);
+                let rowClass = isHighlight ? 'help-row highlighted-row' : 'help-row';
+                let badgeHtml = isHighlight ? '<span class="new-badge">Новое</span>' : '';
+                
+                html += `<div class="${rowClass}">`;
+                html += `<span class="help-cmd" style="position: relative;">${cmd}${badgeHtml}</span>`;
                 html += `<span class="help-arrow">→</span>`;
                 html += `<span class="help-desc">${desc}</span>`;
                 html += `</div>`;
@@ -1704,9 +1707,24 @@
                 await sleep(500);
                 await registrationScene();
             } else {
-                createAvatar();
+                // ИСПРАВЛЕНИЕ: Если игра загружена из сохранения, мы НЕ вызываем createAvatar() (он сбрасывает возраст),
+                // а просто восстанавливаем интерфейс и продолжаем с того же места!
+                header(' ЗАГРУЗКА ПАРТИИ ');
+                print('Сознание успешно восстановлено из резервной копии.', 'color-green');
+                print(`Партия: #${gameState.party_count} | Аватар: ${gameState.avatar_name} | Возраст: ${formatAge(gameState.age)} | Смертей: ${gameState.death_count}`, 'color-cyan');
+                print(`Осознанность: ${gameState.stats.awareness} | Нарушения: ${gameState.stats.violations}`, 'color-cyan');
+                print('');
+                
+                gameState.alive = true; 
+                gameState.in_purgatory = false;
+                currentScene = 'main';
+                
+                showHUD();
+                inputArea.style.display = 'flex';
+                commandInput.focus();
             }
-        }
+            }
+
 
         // Запуск при загрузке страницы
         window.onload = async () => {
