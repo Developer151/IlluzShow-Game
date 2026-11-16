@@ -1,0 +1,608 @@
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', monospace;
+            background: #272866;
+            color: #e0e0e0;
+            min-height: 100vh;
+            overflow-x: hidden;
+            position: relative;
+        }
+        :root {
+        --game-title-font-size: 22px; /* ← здесь меняется размер текста */
+        }
+
+        #game-title {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            z-index: 9999;
+            text-align: center;
+            background: #272866;
+            padding-top: 8px;       /* одна строка воздуха сверху */
+            font-family: monospace;
+            pointer-events: none;
+            box-sizing: border-box;
+            overflow: hidden;
+        }
+
+        #game-title .title-cubes,
+        #game-title .title-text {
+            font-size: 12px;   
+            font-size: clamp(10px, 4vw, 22px);   /* ← ключевое: авто-размер */
+            line-height: 1.3;
+            white-space: nowrap;
+            letter-spacing: 0;
+        }
+        
+        #game-title .title-cubes {
+            color: #4cd8e2;
+        }
+        
+        #game-title .title-text {
+            color: #63e6be;
+            font-size: 12px;  
+            font-size: clamp(14px, 5vw, 22px);  /* ← авто-размер под экран */
+            font-weight: bold;
+            line-height: 1.3;
+            display: inline-block;
+            padding: 4px 12px;
+            border-top: 4px solid #4cd8e2;
+            border-bottom: 4px solid #4cd8e2;
+            letter-spacing: 2px;
+        }
+
+        /* Слой спрайта (2 слой) */
+        #sprite-layer {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 400px;
+            height: 400px;
+            opacity: 0;
+            transition: opacity 1s ease;
+            pointer-events: none;
+            z-index: 2;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #sprite-layer.visible {
+            opacity: 0.3;
+        }
+
+        .sprite-placeholder {
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(ellipse at center, rgba(128, 0, 128, 0.4) 0%, transparent 70%);
+            border-radius: 50%;
+            animation: pulse 3s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 0.3; }
+            50% { transform: scale(1.1); opacity: 0.5; }
+        }
+
+        /* Слой текста (1 слой) */
+        #text-layer {
+            position: relative;
+            z-index: 1;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 100px 20px;
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #game-output {
+            flex: 1;
+            overflow-y: auto;
+            margin-bottom: 10px;
+            white-space: pre-wrap;
+            line-height: 1.6;
+        }
+
+        #input-area {
+            display: flex;
+            flex-direction: column;
+            background: rgba(0, 0, 0, 0.8);
+            position: sticky;
+            bottom: 0;
+        }
+
+        #input-hint {
+            font-size: 20px;
+            color: #dddddd;
+            border-bottom: 1px solid #333;
+            background: rgba(0, 0, 0, 0.4);
+            font-family: inherit;
+        } 
+
+        #input-line {
+            display: flex;
+            margin: 5px;
+            align-items: center;
+        }
+
+        #command-input {
+            flex: 1;
+            background: transparent;
+            border: none;
+            color: #0f0;
+            font-family: inherit;
+            font-size: 20px;
+            outline: none;
+        }
+
+        #command-input::placeholder {
+            color: #555;
+        }
+
+        .btn {
+            background: #1a1a1a;
+            border: 1px solid #333;
+            color: #0f0;
+            padding: 10px 20px;
+            cursor: pointer;
+            font-family: inherit;
+            transition: all 0.2s;
+        }
+
+        .btn:hover {
+            background: #2a2a2a;
+            border-color: #0f0;
+        }
+
+        .info-grid {
+            display: flex;
+            flex-direction: column;
+            margin: 4px;
+            padding: 4px 0;
+        }
+        
+        .info-row {
+            display: grid;
+            grid-template-columns: 130px 1fr;  /* метка / значение */
+            margin: 8px;
+            align-items: baseline;
+        }
+        
+        .info-label {
+            color: #63e6be;
+        }
+        
+        .info-value {
+            color: #e0e0e0;
+            word-break: break-word;  /* ← длинные адреса переносятся, а не выходят за экран */
+        }
+
+
+        /* Цвета */
+        .color-reset { color: #e0e0e0; }
+        .color-bold { font-weight: bold; }
+        .color-dim { opacity: 0.7; }
+        .color-red { color: #ff6b6b; }
+        .color-green { color: #51cf66; }
+        .color-yellow { color: #fcc419; }
+        .color-blue { color: #74c0fc; }
+        .color-magenta { color: #cc5de8; }
+        .color-cyan { color: #63e6be; }
+        .color-white { color: #f8f9fa; }
+        .color-gray { color: #868e96; }
+        .color-violet { color: #a610c7; }
+        .color-lime { color: #94d82d; }
+        .color-black { color: #000000; }
+        /* --- ЦВЕТА КАТ-СЦЕНЫ ВЫХОДА --- */
+        .color-lightblue { color: #a5d8ff; }        /* ИИ после запуска протокола выхода */
+        .color-exit-input { color: #94d82d; }       /* строка запроса — под цвет ИИ */
+
+        /* --- СЛОЙ ТАЙМЕРА ЧИСТИЛИЩА --- */
+        #purgatory-timer {
+            display: none;
+            font-size: 20px;
+            font-weight: bold;
+            color: #ff3b3b;
+            font-family: inherit;
+            padding: 2px 0;
+            letter-spacing: 1px;
+            text-shadow: 0 0 6px rgba(255,59,59,0.6);
+        }
+
+        /* --- OVERLAY ПИКСЕЛИЗАЦИИ ФОНА --- */
+        #pixel-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            z-index: 0;                 /* за текстом и спрайтом: меняет фон, не перекрывая реплики ИИ */
+            pointer-events: none;
+            opacity: 0;
+            background: #272866;
+            image-rendering: pixelated;
+        }
+
+        /* --- CANVAS РАСПРОСТРАНЕНИЯ ЦИФР ПРИ ВЫХОДЕ --- */
+        #exit-noise-canvas {
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            top: 0; left: 0; right: 0; bottom: 0;
+            z-index: 0;                 /* за текстом: цифры расползаются по фону, не закрывая реплики */
+            display: none;
+            pointer-events: none;
+        }
+
+        /* --- ФИНАЛЬНЫЙ CANVAS: матричный шум на весь экран --- */
+        #matrix-canvas {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 20;                /* поверх фона; ИИ на финале больше не пишет */
+            display: none;
+            pointer-events: none;
+        }
+
+        /* --- Крупное слово ОШИБКА поверх финального шума --- */
+        #final-error {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            z-index: 21;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            pointer-events: none;
+            opacity: 0;
+        }
+        /* спокойное медленное мерцание слова ОШИБКА на финальном экране */
+        #final-error.breathing {
+            opacity: 1;
+            animation: errorBreathe 3.6s ease-in-out infinite;
+        }
+        @keyframes errorBreathe {
+            0%, 100% { opacity: 0.18; }
+            50%      { opacity: 1; }
+        }
+        #final-error span {
+            font-family: 'Arial', monospace;
+            font-weight: 700;
+            font-size: 12px;  
+            font-size: clamp(30px, 6.5vw, 110px);
+            letter-spacing: .06em;
+            line-height: 1.05;
+            text-align: center;
+            max-width: 94vw;
+            white-space: normal;
+            color: #757575;
+            text-shadow: 0 0 18px rgba(161, 161, 161, 0.9), 0 0 46px rgba(255, 120, 40, .55);
+        }
+
+        /* Анимации текста */
+        .typing {
+            overflow: hidden;
+            border-right: 2px solid #0f0;
+            white-space: pre-wrap;
+            animation: blink 0.7s step-end infinite;
+        }
+
+        @keyframes blink {
+            50% { border-color: transparent; }
+        }
+
+        /* HUD */
+        .hud-header {
+            border: 1px solid #63e6be;
+            padding: 4px;
+            margin: 6px 0;
+            font-size: 16px;
+        }
+
+        .hud-line {
+            padding: 0;
+            border-bottom: none;
+        }
+
+        .hud-line:last-child {
+            border-bottom: none;
+        }
+
+        /* Шкалы */
+        .bar-container {
+            display: inline-block;
+        }
+
+        .bar-10 {
+            letter-spacing: 2px;
+        }
+
+        /* Кнопки выбора */
+        .choice-buttons {
+            display: flex;
+            flex-direction: column;
+            margin: 10px;
+            margin: 15px 0;
+        }
+
+        .choice-btn {
+            background: rgba(0, 0, 0, 0.6);
+            border: 1px solid #63e6be;
+            color: #63e6be;
+            padding: 12px 20px;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 14px;
+            text-align: left;
+            transition: background 0.2s;
+        }
+
+        .stage-header {
+            background: rgba(30, 74, 82, 0);
+            border: 3px solid #63e6be;
+            color: #63e6be;
+            padding: 12px 20px;
+            margin: 15px 0;
+            font-family: inherit;
+            font-size: 20px;
+            font-weight: bold;
+            text-align: center;
+            letter-spacing: 1px;
+        }
+
+        .divider-line {
+            border-top: 1px solid #868e96;
+            margin: 10px 0;
+            width: 100%;
+        }
+
+        .choice-btn:hover {
+            background: rgba(99, 230, 182, 0.2);
+        }
+
+        /* Скроллбар */
+        #game-output::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        #game-output::-webkit-scrollbar-track {
+            background: #1a1a1a;
+        }
+
+        #game-output::-webkit-scrollbar-thumb {
+            background: #333;
+            border-radius: 4px;
+        }
+
+        #game-output::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+
+        .help-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            margin: 4px;
+            padding: 4px 0;
+        }
+        
+        .help-row {
+            display: grid;
+            grid-template-columns: 120px 20px 1fr;
+            margin: 8px;
+            align-items: baseline;
+        }
+        
+        .help-cmd {
+            color: #63e6be;
+            font-family: 'Arial', monospace;
+        }
+        
+        .help-arrow {
+            color: #868e96;
+        }
+        
+        .help-desc {
+            color: #e0e0e0;
+        }
+
+        .title-row {
+           display: flex;
+           justify-content: center;
+           align-items: center;
+           width: 100%;
+           margin: 0;
+           font-size: 12px;  
+           font-size: clamp(8px, 3.5vw, 22px);
+           line-height: 1.3;
+           white-space: nowrap;
+        }
+        
+        .title-cubes {
+           color: #4cd8e2;                 /* голубой */
+        }
+        
+        .title-cubes-violet {
+           color: #272866;                 /* фиолетовый, как шкала Мрака */
+        }
+        .title-edge {
+           color: #63e6be;
+           font-weight: bold;
+        }
+        
+        .title-center {
+           color: #63e6be;
+           font-weight: bold;
+           flex: 0 1 auto;
+           padding: 0 4px;
+        }
+
+
+        /* Адаптив */
+        @media (max-width: 600px) {
+            #sprite-layer {
+                width: 100%;
+                height:100%;
+            }
+
+            #input-area {
+                flex-direction: column;
+            }
+            .info-row {
+                grid-template-columns: 110px 1fr;
+            }
+
+            .help-row {
+                grid-template-columns: 90px 16px 1fr;
+            }
+
+            .btn {
+                width: 100%;
+            }
+        }
+
+        /* Стартовая ASCII-заставка ILLUZGAME */
+        #intro-splash {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            z-index: 100000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 18px;
+            background: #05030b;
+            opacity: 1;
+            transition: opacity 450ms ease;
+        }
+        #intro-splash.fade-out { opacity: 0; pointer-events: none; }
+        #intro-matrix-canvas {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            display: block;
+        }
+        #intro-splash .splash-frame {
+            position: relative;
+            z-index: 1;
+            width: min(100%, 920px);
+            font-size: 12px;  
+            padding: clamp(10px, 3vw, 28px);
+            border: 2px solid #b026ff;
+            outline: 1px solid rgba(0, 229, 255, .75);
+            outline-offset: 7px;
+            box-shadow: 0 0 22px rgba(176, 38, 255, .55), inset 0 0 24px rgba(0, 229, 255, .08);
+            background: rgba(5, 3, 11, .96);
+            text-align: center;
+        }
+        #intro-splash .splash-kicker {
+            color: #00e5ff;
+            font-size: 12px;  
+            font-size: clamp(10px, 2vw, 15px);
+            letter-spacing: .24em;
+            margin-bottom: 14px;
+        }
+        #intro-splash pre {
+            margin: 0;
+            white-space: pre;
+            overflow: hidden;
+            color: #c15bff;
+            text-shadow: 0 0 9px rgba(176, 38, 255, .8);
+            font-size: 12px;  
+            font: 700 clamp(5px, 1.35vw, 13px)/1.12 "Courier New", monospace;
+        }
+        #intro-splash .splash-binary {
+            margin-top: 15px;
+            color: #00e5ff;
+            letter-spacing: .08em;
+            font-size: 12px;  
+            font: 700 clamp(9px, 1.8vw, 16px)/1.2 "Courier New", monospace;
+            min-height: 1.2em;
+        }
+        #intro-splash .splash-cursor {
+            display: inline-block;
+            color: #fff;
+            animation: splashBlink .65s steps(1) infinite;
+        }
+        #splash-ascii {
+            color: #a610c7;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;  
+            font-size: clamp(6px, 1.6vw, 14px);   /* авто-размер */
+            line-height: 1.0;                     /* без лишнего воздуха */
+            letter-spacing: 0;
+            white-space: pre;                     /* сохраняем пробелы */
+            text-align: center;
+            margin: 0;
+            padding: 0;
+            overflow-x: auto;                     /* если не влезает — скролл, а не ломается */
+            max-width: 100%;
+        }
+        
+        #splash-bits {
+            color: #4cd8e2;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;  
+            font-size: clamp(8px, 2vw, 16px);
+            margin-top: 12px;
+            white-space: pre;
+        }
+
+        #intro-splash .splash-continue {
+            margin-top: 18px;
+            opacity: 0;
+            color: #94d82d;
+            font-size: 12px;  
+            font-size: clamp(9px, 1.6vw, 13px);
+            letter-spacing: .12em;
+            text-transform: uppercase;
+        }
+        #intro-splash .splash-continue.visible {
+            opacity: 1;
+            animation: splashBlink 1s steps(1) infinite;
+        }
+
+        .dl-summary {
+            white-space: normal; /* Отменяет pre-wrap, убирая лишние пробелы из HTML-шаблона */
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin: 10px 0;
+            font-family: 'Arial', monospace;
+            line-height: 1.2;
+        }
+
+        .dl-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .dl-label {
+            width: 50px;
+            color: #e0e0e0;
+        }
+
+        .dl-bars {
+            display: flex;
+            flex-direction: column;
+            line-height: 1.1; /* Убирает лишний вертикальный зазор между кубиками */
+        }
+
+        .dl-value {
+            color: #e0e0e0;
+        }
+
+        @keyframes splashBlink { 50% { opacity: 0; } }
+        @media (max-width: 520px) {
+            #intro-splash .splash-frame { outline-offset: 4px; }
+            #intro-splash pre {
+                font-size: calc((100vw - 90px) / 27);
+            }
+        }
